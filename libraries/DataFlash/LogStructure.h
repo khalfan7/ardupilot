@@ -875,7 +875,53 @@ struct PACKED log_Proximity {
     float closest_dist;
 };
 
-// #endif // SBP_HW_LOGGING
+struct PACKED log_EFI {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t  engine_load_percent;
+    uint32_t engine_speed_rpm;
+    float    spark_dwell_time_ms;
+    float    atmospheric_pressure_kpa;
+    float    intake_manifold_pressure_kpa;
+    float    intake_manifold_temperature;
+    float    coolant_temperature;
+    float    oil_pressure;
+    float    oil_temperature;
+    float    fuel_pressure;
+    float    fuel_consumption_rate_cm3pm;
+    float    estimated_consumed_fuel_volume_cm3;
+    uint8_t  throttle_position_percent;
+    uint8_t  ecu_index;
+};
+
+struct PACKED log_EFI2 {
+    LOG_PACKET_HEADER;
+    uint64_t  time_us;
+    bool     health;
+    uint8_t  engine_state;
+    bool     general_error;
+    uint8_t  crankshaft_sensor_status;
+    uint8_t  temperature_status;
+    uint8_t  fuel_pressure_status;
+    uint8_t  oil_pressure_status;
+    uint8_t  detonation_status;
+    uint8_t  misfire_status;
+    uint8_t  debris_status;
+    uint8_t  spark_plug_usage;
+    uint8_t  ecu_index;
+};
+
+struct PACKED log_EFI_CYL {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float    ignition_timing_deg;
+    float    injection_time_ms;
+    float    cylinder_head_temperature;
+    float    exhaust_gas_temperature;
+    float    lambda_coefficient;
+    uint8_t  ecu_index;
+};
+
 
 #define ACC_LABELS "TimeUS,SampleUS,AccX,AccY,AccZ"
 #define ACC_FMT "QQfff"
@@ -920,6 +966,21 @@ struct PACKED log_Proximity {
 
 #define ARSP_LABELS "TimeUS,Airspeed,DiffPress,Temp,RawPress,Offset,U,Health,Primary"
 #define ARSP_FMT "QffcffBBB"
+
+#define EFI_LABELS "TimeUS,LP,RPM,SDT,ATM,IMP,IMT,ECT,OilP,OilT,FP,FCR,CFV,TPS,IDX"
+#define EFI_FMT    "QBIffffffffffBB" 
+#define EFI_UNITS  "s%qsPPOOPOP--%-"
+#define EFI_MULTS  "F00C--00-0-0000"
+
+#define EFI2_LABELS "TimeUS,Healthy,ES,GE,CSE,TS,FPS,OPS,DS,MS,DS,SPU,IDX"
+#define EFI2_FMT    "QBBBBBBBBBBBB"
+#define EFI2_UNITS  "s------------"
+#define EFI2_MULTS  "F------------"
+
+#define EFI_CYL_LABELS "TimeUS,IgnT,InjT,CHT,EGT,Lambda,IDX"
+#define EFI_CYL_FMT    "QfffffB"
+#define EFI_CYL_UNITS  "sdsOO--"
+#define EFI_CYL_MULTS  "F0C0000"
 
 /*
 Format characters in the format string for binary log messages
@@ -1162,7 +1223,13 @@ Format characters in the format string for binary log messages
     { LOG_RALLY_MSG, sizeof(log_Rally), \
       "RALY", "QBBLLh", "TimeUS,Tot,Seq,Lat,Lng,Alt" }, \
     { LOG_VISUALODOM_MSG, sizeof(log_VisualOdom), \
-      "VISO", "Qffffffff", "TimeUS,dt,AngDX,AngDY,AngDZ,PosDX,PosDY,PosDZ,conf" }
+      "VISO", "Qffffffff", "TimeUS,dt,AngDX,AngDY,AngDZ,PosDX,PosDY,PosDZ,conf", "ssrrrmmm-", "FF000000-" }, \
+    { LOG_EFI_MSG, sizeof(log_EFI), "EFI", EFI_FMT, EFI_LABELS, EFI_UNITS, EFI_MULTS }, \
+    { LOG_EFI2_MSG, sizeof(log_EFI2), "EFI2", EFI2_FMT, EFI2_LABELS, EFI2_UNITS, EFI2_MULTS }, \
+    { LOG_EFI_CYL1_MSG, sizeof(log_EFI_CYL), "ECL1", EFI_CYL_FMT, EFI_CYL_LABELS, EFI_CYL_UNITS, EFI_CYL_MULTS }, \
+    { LOG_EFI_CYL2_MSG, sizeof(log_EFI_CYL), "ECL2", EFI_CYL_FMT, EFI_CYL_LABELS, EFI_CYL_UNITS, EFI_CYL_MULTS }, \
+    { LOG_EFI_CYL3_MSG, sizeof(log_EFI_CYL), "ECL3", EFI_CYL_FMT, EFI_CYL_LABELS, EFI_CYL_UNITS, EFI_CYL_MULTS }, \
+    { LOG_EFI_CYL4_MSG, sizeof(log_EFI_CYL), "ECL4", EFI_CYL_FMT, EFI_CYL_LABELS, EFI_CYL_UNITS, EFI_CYL_MULTS }
 
 // #if SBP_HW_LOGGING
 #define LOG_SBP_STRUCTURES \
@@ -1303,6 +1370,13 @@ enum LogMessages {
     LOG_BEACON_MSG,
     LOG_PROXIMITY_MSG,
     LOG_ASP2_MSG,
+    LOG_EFI_MSG,
+    LOG_EFI2_MSG,
+    LOG_EFI_CYL1_MSG,
+    LOG_EFI_CYL2_MSG,
+    LOG_EFI_CYL3_MSG,
+    LOG_EFI_CYL4_MSG,
+    _LOG_LAST_MSG_
 };
 
 enum LogOriginType {
