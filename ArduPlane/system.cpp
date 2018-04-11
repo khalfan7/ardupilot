@@ -212,7 +212,7 @@ void Plane::init_ardupilot()
 
 // init EFI monitoring
 #if EFI_ENABLED == ENABLED
-    g2.efi.init();
+    g2.efi.init(serial_manager);
 #endif
 
     // give AHRS the airspeed sensor
