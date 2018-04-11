@@ -29,7 +29,7 @@ const AP_Param::GroupInfo AP_EFI::var_info[] = {
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
     // @RebootRequired: True
-    AP_GROUPINFO_FLAGS("_ENABLE", 0, AP_EFI, _enabled, 1, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("_ENABLE", 0, AP_EFI, _enabled, 0, AP_PARAM_FLAG_ENABLE),
 
     // @Param: _TYPE
     // @DisplayName: EFI communication type
