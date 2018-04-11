@@ -19,6 +19,7 @@
 
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 #include "AP_EFI_Backend.h"
 #include "AP_EFI_State.h"
 
@@ -45,7 +46,7 @@ public:
     AP_EFI();
 
     // Initializes backends based on parameters
-    void init();
+    void init(AP_SerialManager &serial_manager);
 
     // Requests all backends to update the frontend. Should be called at 10Hz.
     void update();

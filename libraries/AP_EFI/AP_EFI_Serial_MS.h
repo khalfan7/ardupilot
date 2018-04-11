@@ -41,7 +41,7 @@ class AP_EFI_Serial_MS: public AP_EFI_Backend {
     
 public:
     // Constructor with initialization
-    AP_EFI_Serial_MS(EFI_State& _efi_state);
+    AP_EFI_Serial_MS(EFI_State& _efi_state, AP_SerialManager &serial_manager);
 
     // Update the state structure
     void update();

@@ -21,11 +21,10 @@ extern const AP_HAL::HAL &hal;
 
 
 
-AP_EFI_Serial_MS::AP_EFI_Serial_MS(EFI_State& _efi_state): 
+AP_EFI_Serial_MS::AP_EFI_Serial_MS(EFI_State& _efi_state, AP_SerialManager &serial_manager): 
     AP_EFI_Backend(_efi_state)
 {
-    AP_SerialManager *serial_manager = AP_SerialManager::get_instance();
-    _port = serial_manager->find_serial(AP_SerialManager::SerialProtocol_EFI_MS, 0);
+    _port = serial_manager.find_serial(AP_SerialManager::SerialProtocol_EFI_MS, 0);
 }
 
 
@@ -58,7 +57,6 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
 
     if (_port->available()< 1) {
         // No data is available
-        hal.console->printf("No response \n");
         return false;
     }
     
@@ -69,13 +67,11 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     // Message length value excludes the message length and CRC bytes 
     message_length = _port->read() << 8;
     message_length += _port->read();
-    hal.console->printf("Length: %u \n", (unsigned int) message_length);
     
     // Response Flag (see "response_codes" enum)
     _response_flag = read_byte_CRC32();
     if (_response_flag != RESPONSE_WRITE_OK) {
         // abort read if we did not receive the correct response code
-        hal.console->printf("Error: %x \n",_response_flag);
         return false;
     }
     
@@ -87,60 +83,50 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
             case PW1_MSB:
                 _internal_state.cylinder_status[0].injection_time_ms = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;  // increment the counter because we read a byte in the previous line
-                hal.console->printf("PW: %f \n", _internal_state.atmospheric_pressure_kpa);
                 break;
             case RPM_MSB:
                 // Read 16 bit RPM
                 _internal_state.engine_speed_rpm = (data << 8) + read_byte_CRC32();
                 offset++;
-                hal.console->printf("RPM: %u \n", (unsigned int)_internal_state.engine_speed_rpm);
                 break;
             case ADVANCE_MSB:
                 _internal_state.cylinder_status[0].ignition_timing_deg = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
-                hal.console->printf("TIMING: %f \n", _internal_state.cylinder_status[0].ignition_timing_deg);
                 break;
             case ENGINE_BM:
                 break;
             case BAROMETER_MSB:
                 _internal_state.atmospheric_pressure_kpa = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
-                hal.console->printf("BARO: %f \n", _internal_state.atmospheric_pressure_kpa);
                 break;
             case MAP_MSB:
                 _internal_state.intake_manifold_pressure_kpa = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
-                hal.console->printf("MAP: %f \n", _internal_state.intake_manifold_pressure_kpa);
                 break;
             case MAT_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
                 _internal_state.intake_manifold_temperature = f_to_k(temp_float);
-                hal.console->printf("MAT: %f \n", temp_float);
                 break;
             case CHT_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
                 _internal_state.cylinder_status[0].cylinder_head_temperature = f_to_k(temp_float);
-                hal.console->printf("CHT: %f \n", temp_float);
                 break;
             case TPS_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
                 _internal_state.throttle_position_percent = round(temp_float);
-                hal.console->printf("TPS: %u \n", (unsigned int)_internal_state.throttle_position_percent);
                 break;
             case AFR1_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
                 _internal_state.cylinder_status[0].lambda_coefficient = temp_float;
-                hal.console->printf("AFR1: %f \n", temp_float);
                 break;
             case DWELL_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 _internal_state.spark_dwell_time_ms = temp_float;
                 offset++;
-                hal.console->printf("DWELL: %f \n", temp_float);
                 break;
             case LOAD:
                 _internal_state.engine_load_percent = data;
@@ -150,7 +136,6 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
                 temp_float = (float)((data << 8) + read_byte_CRC32());
                 _internal_state.fuel_pressure = temp_float;
                 offset++;
-                hal.console->printf("FP: %f \n", temp_float);
                 break;   
                 
         }
@@ -164,10 +149,8 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     received_CRC += _port->read();
                         
     if (received_CRC != _checksum) {
-        hal.console->printf("Error, Bad Checksum \n");
         return false;
     }
-    hal.console->printf("Valid Checksum \n \n");
     
     // Calculate Fuel Consumption 
     //float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60.0f;

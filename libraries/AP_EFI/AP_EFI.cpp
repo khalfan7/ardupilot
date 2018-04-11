@@ -76,7 +76,7 @@ AP_EFI::AP_EFI()
 }
 
 // Initialize backends based on existing params
-void AP_EFI::init()
+void AP_EFI::init(AP_SerialManager &serial_manager)
 {
     if (_backend_count > 0) {
         // Init called twice, perhaps
@@ -88,7 +88,7 @@ void AP_EFI::init()
         // Check for MegaSquirt Serial EFI
         if (_type[i] == EFI_COMMUNICATION_TYPE_SERIAL_MS) {
             hal.console->printf("AP_EFI: Starting MegaSquirt Serial backend\n");
-            _backends[_backend_count] = new AP_EFI_Serial_MS(_state[_backend_count]);
+            _backends[_backend_count] = new AP_EFI_Serial_MS(_state[_backend_count],serial_manager);
             _backend_count++;
             
 #if HAL_WITH_UAVCAN
