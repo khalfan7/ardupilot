@@ -466,7 +466,6 @@ AP_UAVCAN::AP_UAVCAN() :
 
         _efi_listener_to_node[i] = UINT8_MAX;
         _efi_listeners[i] = nullptr;
-        _mag_listener_sensor_ids[i] = 0;
     
     }
 
