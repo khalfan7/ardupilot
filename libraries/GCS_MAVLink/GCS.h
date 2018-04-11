@@ -74,6 +74,7 @@ enum ap_message {
     MSG_BATTERY_STATUS,
     MSG_AOA_SSA,
     MSG_LANDING,
+    MSG_EFI_STATUS,
     MSG_RETRY_DEFERRED // this must be last
 };
 
