@@ -23,7 +23,7 @@ extern const AP_HAL::HAL &hal;
 
 
 
-AP_EFI_UAVCAN::AP_EFI_UAVCAN(AP_EFI &_frontend, uint8_t _instance)
+AP_EFI_UAVCAN::AP_EFI_UAVCAN(AP_EFI &_frontend, uint8_t _instance):
     AP_EFI_Backend(_frontend, _instance)
 {
     if (AP_BoardConfig_CAN::get_can_num_ifaces() >= 1) {
