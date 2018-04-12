@@ -45,7 +45,26 @@ const AP_Param::GroupInfo AP_EFI::var_info[] = {
     // @Range: 1 250
     // @User: Advanced
     // @RebootRequired: True
-    AP_GROUPINFO("_UC_NODE", 2, AP_EFI, _uavcan_node_id[0], 1),
+    AP_GROUPINFO("_UC_NODE", 2, AP_EFI, param[0]._uavcan_node_id, 1),
+
+    // @Param: _COEF1
+    // @DisplayName: EFI Calibration Coefficient 1
+    // @Description: Used to calibrate fuel flow for MS protocol (Slope)
+    // @Range: 0 1
+    // @User: Advanced
+    // @RebootRequired: False
+    AP_GROUPINFO("_COEF1", 5, AP_EFI, param[0]._coef1, 0),
+
+    // @Param: _COEF1
+    // @DisplayName: EFI Calibration Coefficient 2
+    // @Description: Used to calibrate fuel flow for MS protocol (Offset)
+    // @Values: 0 10
+    // @User: Advanced
+    // @RebootRequired: False
+    AP_GROUPINFO("_COEF2", 6, AP_EFI, param[0]._coef2, 0),
+
+
+
 
 #if EFI_MAX_INSTANCES > 1
     // @Param: 2_TYPE
@@ -62,7 +81,24 @@ const AP_Param::GroupInfo AP_EFI::var_info[] = {
     // @Range: 1 250
     // @User: Advanced
     // @RebootRequired: True
-    AP_GROUPINFO("2_UC_NODE", 4, AP_EFI, _uavcan_node_id[1], 1),
+    AP_GROUPINFO("2_UC_NODE", 4, AP_EFI, param[1]._uavcan_node_id, 1),
+
+    // @Param: 2_COEF1
+    // @DisplayName: EFI Calibration Coefficient 1
+    // @Description: Used to calibrate fuel flow for MS protocol (Slope)
+    // @Range: 0 1
+    // @User: Advanced
+    // @RebootRequired: False
+    AP_GROUPINFO("2_COEF1", 7, AP_EFI, param[1]._coef1, 0),
+
+    // @Param: 2_COEF1
+    // @DisplayName: EFI Calibration Coefficient 2
+    // @Description: Used to calibrate fuel flow for MS protocol (Offset)
+    // @Values: 0 10
+    // @User: Advanced
+    // @RebootRequired: False
+    AP_GROUPINFO("2_COEF2", 8, AP_EFI, param[1]._coef2, 0),
+
 
 #endif
 
@@ -88,14 +124,14 @@ void AP_EFI::init(AP_SerialManager &serial_manager)
         // Check for MegaSquirt Serial EFI
         if (_type[i] == EFI_COMMUNICATION_TYPE_SERIAL_MS) {
             hal.console->printf("AP_EFI: Starting MegaSquirt Serial backend\n");
-            _backends[_backend_count] = new AP_EFI_Serial_MS(_state[_backend_count],serial_manager);
+            _backends[_backend_count] = new AP_EFI_Serial_MS(*this, _backend_count, serial_manager);
             _backend_count++;
             
 #if HAL_WITH_UAVCAN
         // Check for UAVCAN EFI
         } else if (_type[i] == EFI_COMMUNICATION_TYPE_UAVCAN) {
             hal.console->printf("AP_EFI: Starting UAVCAN backend\n");
-            _backends[_backend_count] = new AP_EFI_UAVCAN(_state[_backend_count], _uavcan_node_id[_backend_count]);
+            _backends[_backend_count] = new AP_EFI_UAVCAN(*this, _backend_count);
             _backend_count++;
 #endif //HAL_WITH_UAVCAN
         }    

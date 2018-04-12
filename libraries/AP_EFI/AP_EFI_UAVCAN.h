@@ -22,7 +22,7 @@
 class AP_EFI_UAVCAN: public AP_EFI_Backend {
 public:
     // Constructor with initialization
-    AP_EFI_UAVCAN(EFI_State& _efi_state, uint8_t efi_source_node_id);
+    AP_EFI_UAVCAN(AP_EFI &_frontend, uint8_t _instance);
 
     // Destructor
     ~AP_EFI_UAVCAN(void) override;

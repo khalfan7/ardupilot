@@ -68,15 +68,25 @@ public:
         EFI_COMMUNICATION_TYPE_SERIAL_MS = 2
     };
 
+protected:
+
+    // Back end Parameters
+    struct {
+      AP_Int8 _uavcan_node_id;
+      AP_Float _coef1;
+      AP_Float _coef2;
+    } param[EFI_MAX_INSTANCES];
+
+    EFI_State _state[EFI_MAX_INSTANCES];
+
 private:
-    // Parameters
+    // Front End Parameters
     AP_Int8 _enabled;
     AP_Int8 _type[EFI_MAX_INSTANCES];
-    AP_Int8 _uavcan_node_id[EFI_MAX_INSTANCES];
 
     // Tracking backends
     AP_EFI_Backend* _backends[EFI_MAX_BACKENDS];
     uint8_t _backend_count; // number of registered EFIs
 
-    EFI_State _state[EFI_MAX_INSTANCES];
+    
 };

@@ -14,6 +14,7 @@
  */
 #pragma once
 
+#include "AP_EFI.h"
 #include "AP_EFI_State.h"
 #include <AP_HAL/AP_HAL.h>
 
@@ -22,7 +23,7 @@ class AP_EFI; //forward declaration
 class AP_EFI_Backend {
 public:    
     // Constructor with initialization
-    AP_EFI_Backend(EFI_State& _efi_state);
+    AP_EFI_Backend(AP_EFI &_frontend, uint8_t _instance);
 
     // Virtual destructor that efi backends can override 
     virtual ~AP_EFI_Backend(void) {}
@@ -40,12 +41,20 @@ protected:
     // Copies state from one struct to another
     void copy_state(const EFI_State& src, EFI_State& dst);
 
-    // Current frontend state of this EFI system
-    EFI_State& efi_state;
-
     // Semaphore for access to shared frontend data
     AP_HAL::Semaphore *_sem;    
 
     // Internal state for this driver (before copying to frontend)
     EFI_State _internal_state;
+
+    int8_t get_uavcan_node_id(void) const;
+    float get_coef1(void) const;
+    float get_coef2(void) const;
+
+private:
+
+    uint8_t instance;
+
+    AP_EFI &frontend;
+
 };

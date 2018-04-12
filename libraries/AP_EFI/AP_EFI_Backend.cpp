@@ -13,18 +13,21 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AP_EFI.h"
 #include "AP_EFI_Backend.h"
 
 extern const AP_HAL::HAL &hal;
 
-AP_EFI_Backend::AP_EFI_Backend(EFI_State& _efi_state) : 
-    efi_state(_efi_state) 
+AP_EFI_Backend::AP_EFI_Backend(AP_EFI &_frontend, uint8_t _instance) : 
+    frontend(_frontend),
+    instance(_instance)
 {
     _sem = hal.util->new_semaphore();
 }
 
-void AP_EFI_Backend::copy_to_frontend() {
-    copy_state(_internal_state, efi_state);
+void AP_EFI_Backend::copy_to_frontend() 
+{
+    copy_state(_internal_state, frontend._state[instance]);
 }
 
 void AP_EFI_Backend::copy_state(const EFI_State& src, EFI_State& dst) 
@@ -61,3 +64,18 @@ void AP_EFI_Backend::copy_state(const EFI_State& src, EFI_State& dst)
     }
 
 } 
+
+int8_t AP_EFI_Backend::get_uavcan_node_id(void) const
+{ 
+    return frontend.param[instance]._uavcan_node_id; 
+}
+
+float AP_EFI_Backend::get_coef1(void) const
+{
+    return frontend.param[instance]._coef1; 
+}
+
+float AP_EFI_Backend::get_coef2(void) const
+{
+    return frontend.param[instance]._coef2; 
+}

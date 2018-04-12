@@ -23,8 +23,8 @@ extern const AP_HAL::HAL &hal;
 
 
 
-AP_EFI_UAVCAN::AP_EFI_UAVCAN(EFI_State& _efi_state, uint8_t efi_source_node_id)
-    : AP_EFI_Backend(_efi_state)
+AP_EFI_UAVCAN::AP_EFI_UAVCAN(AP_EFI &_frontend, uint8_t _instance)
+    AP_EFI_Backend(_frontend, _instance)
 {
     if (AP_BoardConfig_CAN::get_can_num_ifaces() >= 1) {
         for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
@@ -32,7 +32,7 @@ AP_EFI_UAVCAN::AP_EFI_UAVCAN(EFI_State& _efi_state, uint8_t efi_source_node_id)
                 AP_UAVCAN* uavcan = hal.can_mgr[i]->get_UAVCAN();
 
                 if (uavcan != nullptr) {
-                    uint8_t listener_channel = uavcan->register_efi_listener(this, efi_source_node_id);
+                    uint8_t listener_channel = uavcan->register_efi_listener(this, get_uavcan_node_id());
                     _manager = i;
                     hal.console->printf("AP_EFI_UAVCAN: EFI Listener registered to channel %d\n", listener_channel);
                 } 
