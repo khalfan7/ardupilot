@@ -72,8 +72,7 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     // Response Flag (see "response_codes" enum)
     _response_flag = read_byte_CRC32();
     if (_response_flag != RESPONSE_WRITE_OK) {
-        // abort read if we did not receive the correct response code
-        hal.console->printf("Error: %x \n",_response_flag);
+        // abort read if we did not receive the correct response code;
         return false;
     }
     
@@ -114,7 +113,6 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
                 offset++;
                 _internal_state.cylinder_status[0].cylinder_head_temperature = f_to_k(temp_float);
-                hal.console->printf("CHT: %f \n", temp_float);
                 break;
             case TPS_MSB:
                 temp_float = (float)((data << 8) + read_byte_CRC32())/10.0f;
@@ -152,10 +150,8 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     received_CRC += _port->read();
                         
     if (received_CRC != _checksum) {
-        hal.console->printf("Error, Bad Checksum \n");
         return false;
     }
-    hal.console->printf("Valid Checksum \n \n");
     
     // Calculate Fuel Consumption 
     float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60.0f;
