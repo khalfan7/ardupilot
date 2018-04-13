@@ -418,6 +418,9 @@ void Plane::efi_update(void)
 {
 #if EFI_ENABLED == ENABLED
     g2.efi.update();
+    if (should_log(MASK_LOG_RC)) {
+        DataFlash.Log_Write_EFI(g2.efi);
+    }
 #endif
 }
 
