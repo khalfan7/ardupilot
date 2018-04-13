@@ -24,6 +24,7 @@ extern const AP_HAL::HAL &hal;
 AP_EFI_Serial_MS::AP_EFI_Serial_MS(AP_EFI &_frontend, uint8_t _instance, AP_SerialManager &serial_manager): 
     AP_EFI_Backend(_frontend, _instance)
 {
+    _internal_state.estimated_consumed_fuel_volume_cm3 = 0; // Just to be sure
     _port = serial_manager.find_serial(AP_SerialManager::SerialProtocol_EFI_MS, 0);
 }
 
@@ -155,10 +156,15 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     
     // Calculate Fuel Consumption 
     float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60.0f;
-    _internal_state.fuel_consumption_rate_cm3pm = duty_cycle*get_coef1() - get_coef2();
     uint32_t current_time = AP_HAL::millis();
     // Super Simplified integration method - Error Analysis TBD
-    _internal_state.estimated_consumed_fuel_volume_cm3 += _internal_state.fuel_consumption_rate_cm3pm * (current_time - _internal_state.last_updated_ms);
+    // This calcualtion gives erroneous results when the engine isn't running
+    if (_internal_state.engine_speed_rpm > RPM_THRESHOLD) {
+        _internal_state.fuel_consumption_rate_cm3pm = duty_cycle*get_coef1() - get_coef2();
+        _internal_state.estimated_consumed_fuel_volume_cm3 += _internal_state.fuel_consumption_rate_cm3pm * (current_time - _internal_state.last_updated_ms);
+    } else {
+        _internal_state.fuel_consumption_rate_cm3pm = 0;
+    }
     _internal_state.last_updated_ms = current_time;
     
     return true;

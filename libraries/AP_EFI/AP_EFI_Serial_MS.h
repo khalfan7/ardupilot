@@ -35,6 +35,9 @@
 #define SQUIRT_SCHED_2               (1<<4)
 #define SQUIRT_NOW_2                 (1<<5)
 
+// RPM Threshold for fuel consumption estimator
+#define RPM_THRESHOLD                100
+
 
 
 class AP_EFI_Serial_MS: public AP_EFI_Backend {
