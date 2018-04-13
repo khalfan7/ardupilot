@@ -83,7 +83,7 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
         float temp_float;
         switch (offset) {
             case PW1_MSB:
-                _internal_state.cylinder_status[0].injection_time_ms = (float)((data << 8) + read_byte_CRC32())/10.0f;
+                _internal_state.cylinder_status[0].injection_time_ms = (float)((data << 8) + read_byte_CRC32())/1000.0f;
                 offset++;  // increment the counter because we read a byte in the previous line
                 break;
             case RPM_MSB:
@@ -155,7 +155,7 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     }
     
     // Calculate Fuel Consumption 
-    float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60.0f;
+    float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60000.0f;
     uint32_t current_time = AP_HAL::millis();
     // Super Simplified integration method - Error Analysis TBD
     // This calcualtion gives erroneous results when the engine isn't running
