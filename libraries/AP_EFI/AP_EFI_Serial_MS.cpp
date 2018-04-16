@@ -161,7 +161,7 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     // This calcualtion gives erroneous results when the engine isn't running
     if (_internal_state.engine_speed_rpm > RPM_THRESHOLD) {
         _internal_state.fuel_consumption_rate_cm3pm = duty_cycle*get_coef1() - get_coef2();
-        _internal_state.estimated_consumed_fuel_volume_cm3 += _internal_state.fuel_consumption_rate_cm3pm * (current_time - _internal_state.last_updated_ms);
+        _internal_state.estimated_consumed_fuel_volume_cm3 += _internal_state.fuel_consumption_rate_cm3pm * (current_time - _internal_state.last_updated_ms)/60000.0f;
     } else {
         _internal_state.fuel_consumption_rate_cm3pm = 0;
     }
