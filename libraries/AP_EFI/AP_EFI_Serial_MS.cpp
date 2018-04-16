@@ -155,7 +155,8 @@ bool AP_EFI_Serial_MS::read_incoming_realtime_data()
     }
     
     // Calculate Fuel Consumption 
-    float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/60000.0f;
+    // Duty Cycle (Percent, because that's how HFE gives us the calibration coefficients)
+    float duty_cycle = (_internal_state.cylinder_status[0].injection_time_ms*_internal_state.engine_speed_rpm)/600.0f;
     uint32_t current_time = AP_HAL::millis();
     // Super Simplified integration method - Error Analysis TBD
     // This calcualtion gives erroneous results when the engine isn't running
