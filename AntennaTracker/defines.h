@@ -1,10 +1,5 @@
 #pragma once
 
-// Command/Waypoint/Location Options Bitmask
-//--------------------
-#define MASK_OPTIONS_RELATIVE_ALT       (1<<0)          // 1 = Relative
-                                                        // altitude
-
 // Controller modes
 // ----------------
 
@@ -29,6 +24,11 @@ enum AltSource {
 	ALT_SOURCE_GPS_VEH_ONLY=2
 };
 
+enum class PWMDisarmed {
+    ZERO = 0,
+    TRIM,
+};
+
 //  Filter
 #define SERVO_OUT_FILT_HZ               0.1f
 #define G_Dt                            0.02f
@@ -40,6 +40,7 @@ enum AltSource {
 #define MASK_LOG_IMU                    (1<<3)
 #define MASK_LOG_RCOUT                  (1<<4)
 #define MASK_LOG_COMPASS                (1<<5)
+#define MASK_LOG_CURRENT                (1<<6)
 #define MASK_LOG_ANY                    0xFFFF
 
 //  Logging messages
