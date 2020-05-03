@@ -29,14 +29,14 @@ namespace SITL {
  */
 class FlightAxis : public Aircraft {
 public:
-    FlightAxis(const char *home_str, const char *frame_str);
+    FlightAxis(const char *frame_str);
 
     /* update model by one time step */
-    void update(const struct sitl_input &input);
+    void update(const struct sitl_input &input) override;
 
     /* static object creator */
-    static Aircraft *create(const char *home_str, const char *frame_str) {
-        return new FlightAxis(home_str, frame_str);
+    static Aircraft *create(const char *frame_str) {
+        return new FlightAxis(frame_str);
     }
 
     struct state {
@@ -176,14 +176,16 @@ private:
     double last_frame_count_s;
     Vector3f position_offset;
     Vector3f last_velocity_ef;
-    Matrix3f att_rotation;
-    enum Rotation rotation = ROTATION_NONE;
 
     const char *controller_ip = "127.0.0.1";
     uint16_t controller_port = 18083;
 
     pthread_t thread;
+<<<<<<< HEAD
     AP_HAL::Semaphore *mutex;
+=======
+    HAL_Semaphore mutex;
+>>>>>>> upstream/plane4.0
 };
 
 

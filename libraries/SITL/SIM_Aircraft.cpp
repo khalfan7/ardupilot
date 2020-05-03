@@ -23,14 +23,15 @@
 #include <unistd.h>
 
 
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(__CYGWIN64__)
 #include <windows.h>
 #include <time.h>
-#include <Mmsystem.h>
+#include <mmsystem.h>
 #endif
 
-#include <DataFlash/DataFlash.h>
+#include <AP_Logger/AP_Logger.h>
 #include <AP_Param/AP_Param.h>
+#include <AP_Declination/AP_Declination.h>
 
 using namespace SITL;
 
@@ -38,7 +39,7 @@ using namespace SITL;
   parent class for all simulator types
  */
 
-Aircraft::Aircraft(const char *home_str, const char *frame_str) :
+Aircraft::Aircraft(const char *frame_str) :
     ground_level(0.0f),
     frame_height(0.0f),
     dcm(),
@@ -54,34 +55,29 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
     rate_hz(1200.0f),
     autotest_dir(nullptr),
     frame(frame_str),
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(__CYGWIN64__)
     min_sleep_time(20000)
 #else
     min_sleep_time(5000)
 #endif
 {
     // make the SIM_* variables available to simulator backends
-    sitl = (SITL *)AP_Param::find_object("SIM_");
-    parse_home(home_str, home, home_yaw);
-    location = home;
-    ground_level = home.alt * 0.01f;
-
-    dcm.from_euler(0.0f, 0.0f, radians(home_yaw));
+    sitl = AP::sitl();
 
     set_speedup(1.0f);
 
     last_wall_time_us = get_wall_time_us();
     frame_counter = 0;
 
-    terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
+    // allow for orientation settings, such as with tailsitters
+    enum ap_var_type ptype;
+    ahrs_orientation = (AP_Int8 *)AP_Param::find("AHRS_ORIENTATION", &ptype);
+    terrain = reinterpret_cast<AP_Terrain *>(AP_Param::find_object("TERRAIN_"));
 }
 
-
-/*
-  parse a home string into a location and yaw
- */
-bool Aircraft::parse_home(const char *home_str, Location &loc, float &yaw_degrees)
+void Aircraft::set_start_location(const Location &start_loc, const float start_yaw)
 {
+<<<<<<< HEAD
     char *saveptr = nullptr;
     char *s = strdup(home_str);
     if (!s) {
@@ -126,6 +122,22 @@ bool Aircraft::parse_home(const char *home_str, Location &loc, float &yaw_degree
     free(s);
 
     return true;
+=======
+    home = start_loc;
+    home_yaw = start_yaw;
+    home_is_set = true;
+
+    ::printf("Home: %f %f alt=%fm hdg=%f\n",
+             home.lat*1e-7,
+             home.lng*1e-7,
+             home.alt*0.01,
+             home_yaw);
+
+    location = home;
+    ground_level = home.alt * 0.01f;
+
+    dcm.from_euler(0.0f, 0.0f, radians(home_yaw));
+>>>>>>> upstream/plane4.0
 }
 
 /*
@@ -134,12 +146,18 @@ bool Aircraft::parse_home(const char *home_str, Location &loc, float &yaw_degree
 float Aircraft::ground_height_difference() const
 {
     float h1, h2;
-    if (sitl->terrain_enable && terrain &&
+    if (sitl &&
+        sitl->terrain_enable && terrain &&
         terrain->height_amsl(home, h1, false) &&
         terrain->height_amsl(location, h2, false)) {
         return h2 - h1;
     }
     return 0.0f;
+}
+
+void Aircraft::set_precland(SIM_Precland *_precland) {
+    precland = _precland;
+    precland->set_default_location(home.lat * 1.0e-7f, home.lng * 1.0e-7f, static_cast<int16_t>(get_home_yaw()));
 }
 
 /*
@@ -154,7 +172,7 @@ float Aircraft::hagl() const
 */
 bool Aircraft::on_ground() const
 {
-    return hagl() <= 0;
+    return hagl() <= 0.001f;  // prevent bouncing around ground
 }
 
 /*
@@ -163,14 +181,14 @@ bool Aircraft::on_ground() const
 void Aircraft::update_position(void)
 {
     location = home;
-    location_offset(location, position.x, position.y);
+    location.offset(position.x, position.y);
 
     location.alt  = static_cast<int32_t>(home.alt - position.z * 100.0f);
 
 #if 0
     // logging of raw sitl data
     Vector3f accel_ef = dcm * accel_body;
-    DataFlash_Class::instance()->Log_Write("SITL", "TimeUS,VN,VE,VD,AN,AE,AD,PN,PE,PD", "Qfffffffff",
+    AP::logger().Write("SITL", "TimeUS,VN,VE,VD,AN,AE,AD,PN,PE,PD", "Qfffffffff",
                                            AP_HAL::micros64(),
                                            velocity_ef.x, velocity_ef.y, velocity_ef.z,
                                            accel_ef.x, accel_ef.y, accel_ef.z,
@@ -187,7 +205,7 @@ void Aircraft::update_mag_field_bf()
     float intensity;
     float declination;
     float inclination;
-    get_mag_field_ef(location.lat * 1e-7f, location.lng * 1e-7f, intensity, declination, inclination);
+    AP_Declination::get_mag_field_ef(location.lat * 1e-7f, location.lng * 1e-7f, intensity, declination, inclination);
 
     // create a field vector and rotate to the required orientation
     Vector3f mag_ef(1e3f * intensity, 0.0f, 0.0f);
@@ -197,6 +215,11 @@ void Aircraft::update_mag_field_bf()
 
     // calculate frame height above ground
     const float frame_height_agl = fmaxf((-position.z) + home.alt * 0.01f - ground_level, 0.0f);
+
+    if (!sitl) {
+        // running example program
+        return;
+    }
 
     // calculate scaling factor that varies from 1 at ground level to 1/8 at sitl->mag_anomaly_hgt
     // Assume magnetic anomaly strength scales with 1/R**3
@@ -242,7 +265,7 @@ void Aircraft::setup_frame_time(float new_rate, float new_speedup)
 /* adjust frame_time calculation */
 void Aircraft::adjust_frame_time(float new_rate)
 {
-    if (rate_hz != new_rate) {
+    if (!is_equal(rate_hz, new_rate)) {
         rate_hz = new_rate;
         frame_time_us = static_cast<uint64_t>(1.0e6f/rate_hz);
         scaled_frame_time_us = frame_time_us/target_speedup;
@@ -372,6 +395,10 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
     memcpy(fdm.rcin, rcin, rcin_chan_count * sizeof(float));
     fdm.bodyMagField = mag_bf;
 
+    // copy laser scanner results
+    fdm.scanner.points = scanner.points;
+    fdm.scanner.ranges = scanner.ranges;
+
     if (smoothing.enabled) {
         fdm.xAccel = smoothing.accel_body.x;
         fdm.yAccel = smoothing.accel_body.y;
@@ -387,7 +414,24 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
         fdm.altitude  = smoothing.location.alt * 1.0e-2;
     }
 
-    if (last_speedup != sitl->speedup && sitl->speedup > 0) {
+    if (ahrs_orientation != nullptr) {
+        enum Rotation imu_rotation = (enum Rotation)ahrs_orientation->get();
+
+        if (imu_rotation != ROTATION_NONE) {
+            Matrix3f m = dcm;
+            Matrix3f rot;
+            rot.from_rotation(imu_rotation);
+            m = m * rot.transposed();
+
+            m.to_euler(&r, &p, &y);
+            fdm.rollDeg  = degrees(r);
+            fdm.pitchDeg = degrees(p);
+            fdm.yawDeg   = degrees(y);
+            fdm.quaternion.from_rotation_matrix(m);
+        }
+    }
+    
+    if (!is_equal(last_speedup, float(sitl->speedup)) && sitl->speedup > 0) {
         set_speedup(sitl->speedup);
         last_speedup = sitl->speedup;
     }
@@ -395,7 +439,7 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm)
 
 uint64_t Aircraft::get_wall_time_us() const
 {
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(__CYGWIN64__)
     static DWORD tPrev;
     static uint64_t last_ret_us;
     if (tPrev == 0) {
@@ -419,6 +463,21 @@ uint64_t Aircraft::get_wall_time_us() const
 void Aircraft::set_speedup(float speedup)
 {
     setup_frame_time(rate_hz, speedup);
+}
+
+void Aircraft::update_model(const struct sitl_input &input)
+{
+    if (!home_is_set) {
+        if (sitl == nullptr) {
+            return;
+        }
+        Location loc;
+        loc.lat = sitl->opos.lat.get() * 1.0e7;
+        loc.lng = sitl->opos.lng.get() * 1.0e7;
+        loc.alt = sitl->opos.alt.get() * 1.0e2;
+        set_start_location(loc, sitl->opos.hdg.get());
+    }
+    update(input);
 }
 
 /*
@@ -506,7 +565,14 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
             // zero roll/pitch, but keep yaw
             float r, p, y;
             dcm.to_euler(&r, &p, &y);
-            dcm.from_euler(0.0f, 0.0f, y);
+            if (velocity_ef.length() < 5) {
+                // at high speeds don't constrain pitch, otherwise we
+                // can get stuck in takeoff
+                p = 0;
+            } else {
+                p = MAX(p, 0);
+            }
+            dcm.from_euler(0.0f, p, y);
             // only fwd movement
             Vector3f v_bf = dcm.transposed() * velocity_ef;
             v_bf.y = 0.0f;
@@ -544,7 +610,9 @@ void Aircraft::update_dynamics(const Vector3f &rot_accel)
 void Aircraft::update_wind(const struct sitl_input &input)
 {
     // wind vector in earth frame
-    wind_ef = Vector3f(cosf(radians(input.wind.direction)), sinf(radians(input.wind.direction)), 0) * input.wind.speed;
+    wind_ef = Vector3f(cosf(radians(input.wind.direction))*cosf(radians(input.wind.dir_z)), 
+                       sinf(radians(input.wind.direction))*cosf(radians(input.wind.dir_z)), 
+                       sinf(radians(input.wind.dir_z))) * input.wind.speed;
 
     const float wind_turb = input.wind.turbulence * 10.0f;  // scale input.wind.turbulence to match standard deviation when using iir_coef=0.98
     const float iir_coef = 0.98f;  // filtering high frequencies from turbulence
@@ -563,91 +631,6 @@ void Aircraft::update_wind(const struct sitl_input &input)
             sinf(radians(turbulence_azimuth)) * turbulence_horizontal_speed,
             turbulence_vertical_speed);
     }
-}
-
-/*
- calculate magnetic field intensity and orientation
-*/
-bool Aircraft::get_mag_field_ef(float latitude_deg, float longitude_deg, float &intensity_gauss, float &declination_deg, float &inclination_deg)
-{
-    bool valid_input_data = true;
-
-    /* round down to nearest sampling resolution */
-    int32_t min_lat = static_cast<int32_t>(static_cast<int32_t>(latitude_deg / SAMPLING_RES) * SAMPLING_RES);
-    int32_t min_lon = static_cast<int32_t>(static_cast<int32_t>(longitude_deg / SAMPLING_RES) * SAMPLING_RES);
-
-    /* for the rare case of hitting the bounds exactly
-     * the rounding logic wouldn't fit, so enforce it.
-     */
-
-    /* limit to table bounds - required for maxima even when table spans full globe range */
-    if (latitude_deg <= SAMPLING_MIN_LAT) {
-        min_lat = static_cast<int32_t>(SAMPLING_MIN_LAT);
-        valid_input_data = false;
-    }
-
-    if (latitude_deg >= SAMPLING_MAX_LAT) {
-        min_lat = static_cast<int32_t>(static_cast<int32_t>(latitude_deg / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES);
-        valid_input_data = false;
-    }
-
-    if (longitude_deg <= SAMPLING_MIN_LON) {
-        min_lon = static_cast<int32_t>(SAMPLING_MIN_LON);
-        valid_input_data = false;
-    }
-
-    if (longitude_deg >= SAMPLING_MAX_LON) {
-        min_lon = static_cast<int32_t>(static_cast<int32_t>(longitude_deg / SAMPLING_RES) * SAMPLING_RES - SAMPLING_RES);
-        valid_input_data = false;
-    }
-
-    /* find index of nearest low sampling point */
-    uint32_t min_lat_index = static_cast<uint32_t>((-(SAMPLING_MIN_LAT) + min_lat)  / SAMPLING_RES);
-    uint32_t min_lon_index = static_cast<uint32_t>((-(SAMPLING_MIN_LON) + min_lon) / SAMPLING_RES);
-
-    /* calculate intensity */
-
-    float data_sw = intensity_table[min_lat_index][min_lon_index];
-    float data_se = intensity_table[min_lat_index][min_lon_index + 1];;
-    float data_ne = intensity_table[min_lat_index + 1][min_lon_index + 1];
-    float data_nw = intensity_table[min_lat_index + 1][min_lon_index];
-
-    /* perform bilinear interpolation on the four grid corners */
-
-    float data_min = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_se - data_sw) + data_sw;
-    float data_max = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_ne - data_nw) + data_nw;
-
-    intensity_gauss = ((latitude_deg - min_lat) / SAMPLING_RES) * (data_max - data_min) + data_min;
-
-    /* calculate declination */
-
-    data_sw = declination_table[min_lat_index][min_lon_index];
-    data_se = declination_table[min_lat_index][min_lon_index + 1];;
-    data_ne = declination_table[min_lat_index + 1][min_lon_index + 1];
-    data_nw = declination_table[min_lat_index + 1][min_lon_index];
-
-    /* perform bilinear interpolation on the four grid corners */
-
-    data_min = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_se - data_sw) + data_sw;
-    data_max = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_ne - data_nw) + data_nw;
-
-    declination_deg = ((latitude_deg - min_lat) / SAMPLING_RES) * (data_max - data_min) + data_min;
-
-    /* calculate inclination */
-
-    data_sw = inclination_table[min_lat_index][min_lon_index];
-    data_se = inclination_table[min_lat_index][min_lon_index + 1];;
-    data_ne = inclination_table[min_lat_index + 1][min_lon_index + 1];
-    data_nw = inclination_table[min_lat_index + 1][min_lon_index];
-
-    /* perform bilinear interpolation on the four grid corners */
-
-    data_min = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_se - data_sw) + data_sw;
-    data_max = ((longitude_deg - min_lon) / SAMPLING_RES) * (data_ne - data_nw) + data_nw;
-
-    inclination_deg = ((latitude_deg - min_lat) / SAMPLING_RES) * (data_max - data_min) + data_min;
-
-    return valid_input_data;
 }
 
 /*
@@ -702,7 +685,7 @@ void Aircraft::smooth_sensors(void)
     dcm.to_euler(&R2, &P2, &Y2);
 
 #if 0
-    DataFlash_Class::instance()->Log_Write("SMOO", "TimeUS,AEx,AEy,AEz,DPx,DPy,DPz,R,P,Y,R2,P2,Y2",
+    AP::logger().Write("SMOO", "TimeUS,AEx,AEy,AEz,DPx,DPy,DPz,R,P,Y,R2,P2,Y2",
                                            "Qffffffffffff",
                                            AP_HAL::micros64(),
                                            degrees(angle_differential.x),
@@ -723,7 +706,7 @@ void Aircraft::smooth_sensors(void)
     smoothing.position += smoothing.velocity_ef * delta_time;
 
     smoothing.location = home;
-    location_offset(smoothing.location, smoothing.position.x, smoothing.position.y);
+    smoothing.location.offset(smoothing.position.x, smoothing.position.y);
     smoothing.location.alt  = static_cast<int32_t>(home.alt - smoothing.position.z * 100.0f);
 
     smoothing.last_update_us = now;
@@ -785,4 +768,95 @@ void Aircraft::extrapolate_sensors(float delta_time)
     velocity_air_bf = dcm.transposed() * velocity_air_ef;
 }
 
+<<<<<<< HEAD
 
+=======
+void Aircraft::update_external_payload(const struct sitl_input &input)
+{
+    external_payload_mass = 0;
+
+    // update sprayer
+    if (sprayer && sprayer->is_enabled()) {
+        sprayer->update(input);
+        external_payload_mass += sprayer->payload_mass();
+    }
+
+    // update buzzer
+    if (buzzer && buzzer->is_enabled()) {
+        buzzer->update(input);
+    }
+
+    // update grippers
+    if (gripper && gripper->is_enabled()) {
+        gripper->set_alt(hagl());
+        gripper->update(input);
+        external_payload_mass += gripper->payload_mass();
+    }
+    if (gripper_epm && gripper_epm->is_enabled()) {
+        gripper_epm->update(input);
+        external_payload_mass += gripper_epm->payload_mass();
+    }
+
+    // update parachute
+    if (parachute && parachute->is_enabled()) {
+        parachute->update(input);
+        // TODO: add drag to vehicle, presumably proportional to velocity
+    }
+
+    if (precland && precland->is_enabled()) {
+        precland->update(get_location(), get_position());
+    }
+}
+
+void Aircraft::add_shove_forces(Vector3f &rot_accel, Vector3f &body_accel)
+{
+    const uint32_t now = AP_HAL::millis();
+    if (sitl == nullptr) {
+        return;
+    }
+    if (sitl->shove.t == 0) {
+        return;
+    }
+    if (sitl->shove.start_ms == 0) {
+        sitl->shove.start_ms = now;
+    }
+    if (now - sitl->shove.start_ms < uint32_t(sitl->shove.t)) {
+        // FIXME: can we get a vector operation here instead?
+        body_accel.x += sitl->shove.x;
+        body_accel.y += sitl->shove.y;
+        body_accel.z += sitl->shove.z;
+    } else {
+        sitl->shove.start_ms = 0;
+        sitl->shove.t = 0;
+    }
+}
+
+void Aircraft::add_twist_forces(Vector3f &rot_accel)
+{
+    if (sitl == nullptr) {
+        return;
+    }
+    if (sitl->gnd_behav != -1) {
+        ground_behavior = (GroundBehaviour)sitl->gnd_behav.get();
+    }
+    const uint32_t now = AP_HAL::millis();
+    if (sitl == nullptr) {
+        return;
+    }
+    if (sitl->twist.t == 0) {
+        return;
+    }
+    if (sitl->twist.start_ms == 0) {
+        sitl->twist.start_ms = now;
+    }
+    if (now - sitl->twist.start_ms < uint32_t(sitl->twist.t)) {
+        // FIXME: can we get a vector operation here instead?
+        rot_accel.x += sitl->twist.x;
+        rot_accel.y += sitl->twist.y;
+        rot_accel.z += sitl->twist.z;
+    } else {
+        sitl->twist.start_ms = 0;
+        sitl->twist.t = 0;
+    }
+}
+>>>>>>> upstream/plane4.0
