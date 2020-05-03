@@ -54,8 +54,11 @@ private:
 
     float _temp;
     float _press;
+<<<<<<< HEAD
     float _temperature;
     float _pressure;
+=======
+>>>>>>> upstream/plane4.0
     uint16_t _temp_count;
     uint16_t _press_count;
     float _temp_sum;

@@ -46,7 +46,11 @@ protected:
     }
     
     // semaphore for access to shared frontend data
+<<<<<<< HEAD
     AP_HAL::Semaphore *sem;
+=======
+    HAL_Semaphore_Recursive sem;
+>>>>>>> upstream/plane4.0
 
     float get_airspeed_ratio(void) const {
         return frontend.get_airspeed_ratio(instance);
