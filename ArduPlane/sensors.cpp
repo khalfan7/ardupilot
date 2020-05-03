@@ -1,21 +1,6 @@
 #include "Plane.h"
 #include <AP_RSSI/AP_RSSI.h>
-
-void Plane::init_barometer(bool full_calibration)
-{
-    gcs().send_text(MAV_SEVERITY_INFO, "Calibrating barometer");
-    if (full_calibration) {
-        barometer.calibrate();
-    } else {
-        barometer.update_calibration();
-    }
-    gcs().send_text(MAV_SEVERITY_INFO, "Barometer calibration complete");
-}
-
-void Plane::init_rangefinder(void)
-{
-    rangefinder.init();
-}
+#include <AP_OpticalFlow/AP_OpticalFlow.h>
 
 /*
   read the rangefinder and update height estimate
@@ -46,19 +31,11 @@ void Plane::read_rangefinder(void)
 
     rangefinder.update();
 
-    if (should_log(MASK_LOG_SONAR))
+    if ((rangefinder.num_sensors() > 0) && should_log(MASK_LOG_SONAR)) {
         Log_Write_Sonar();
+    }
 
     rangefinder_height_update();
-}
-
-/*
-  calibrate compass
-*/
-void Plane::compass_cal_update() {
-    if (!hal.util->get_soft_armed()) {
-        compass.compass_cal_update();
-    }
 }
 
 /*
@@ -80,6 +57,7 @@ void Plane::accel_cal_update() {
  */
 void Plane::read_airspeed(void)
 {
+<<<<<<< HEAD
     if (airspeed.enabled()) {
         airspeed.read();
         if (should_log(MASK_LOG_IMU)) {
@@ -93,6 +71,9 @@ void Plane::read_airspeed(void)
             barometer.set_external_temperature(temperature);
         }
     }
+=======
+    airspeed.update(should_log(MASK_LOG_IMU));
+>>>>>>> upstream/plane4.0
 
     // we calculate airspeed errors (and thus target_airspeed_cm) even
     // when airspeed is disabled as TECS may be using synthetic
@@ -106,42 +87,6 @@ void Plane::read_airspeed(void)
     }
 }
 
-void Plane::zero_airspeed(bool in_startup)
-{
-    airspeed.calibrate(in_startup);
-    read_airspeed();
-    // update barometric calibration with new airspeed supplied temperature
-    barometer.update_calibration();
-    gcs().send_text(MAV_SEVERITY_INFO,"Airspeed calibration started");
-}
-
-// read_battery - reads battery voltage and current and invokes failsafe
-// should be called at 10hz
-void Plane::read_battery(void)
-{
-    battery.read();
-    compass.set_current(battery.current_amps());
-
-    if (hal.util->get_soft_armed() &&
-        battery.exhausted(g.fs_batt_voltage, g.fs_batt_mah)) {
-        low_battery_event();
-    }
-    if (battery.get_type() != AP_BattMonitor::BattMonitor_TYPE_NONE) {
-        AP_Notify::flags.battery_voltage = battery.voltage();
-    }
-    
-    if (should_log(MASK_LOG_CURRENT)) {
-        Log_Write_Current();
-    }
-}
-
-// read the receiver RSSI as an 8 bit number for MAVLink
-// RC_CHANNELS_SCALED message
-void Plane::read_receiver_rssi(void)
-{
-    receiver_rssi = rssi.read_receiver_rssi_uint8();
-}
-
 /*
   update RPM sensors
  */
@@ -150,6 +95,7 @@ void Plane::rpm_update(void)
     rpm_sensor.update();
     if (rpm_sensor.enabled(0) || rpm_sensor.enabled(1)) {
         if (should_log(MASK_LOG_RC)) {
+<<<<<<< HEAD
             DataFlash.Log_Write_RPM(rpm_sensor);
         }
     }
@@ -362,26 +308,9 @@ void Plane::update_sensor_status_flags(void)
         }
         if (rangefinder.has_data_orient(ROTATION_PITCH_270)) {
             control_sensors_health |= MAV_SYS_STATUS_SENSOR_LASER_POSITION;            
+=======
+            logger.Write_RPM(rpm_sensor);
+>>>>>>> upstream/plane4.0
         }
     }
-
-    if (aparm.throttle_min < 0 && SRV_Channels::get_output_scaled(SRV_Channel::k_throttle) < 0) {
-        control_sensors_enabled |= MAV_SYS_STATUS_REVERSE_MOTOR;
-        control_sensors_health |= MAV_SYS_STATUS_REVERSE_MOTOR;
-    }
-
-    if (AP_Notify::flags.initialising) {
-        // while initialising the gyros and accels are not enabled
-        control_sensors_enabled &= ~(MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL);
-        control_sensors_health &= ~(MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL);
-    }
-
-    if (plane.failsafe.low_battery) {
-        control_sensors_health &= ~MAV_SYS_STATUS_SENSOR_BATTERY;
-    }
-
-#if FRSKY_TELEM_ENABLED == ENABLED
-    // give mask of error flags to Frsky_Telemetry
-    frsky_telemetry.update_sensor_status_flags(~control_sensors_health & control_sensors_enabled & control_sensors_present);
-#endif
 }
