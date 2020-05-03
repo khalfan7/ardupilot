@@ -3,26 +3,87 @@
 
 bool ModeRTL::_enter()
 {
-    rover.prev_WP = rover.current_loc;
-    rover.next_WP = rover.home;
-    g2.motors.slew_limit_throttle(true);
+    // refuse RTL if home has not been set
+    if (!AP::ahrs().home_is_set()) {
+        return false;
+    }
+
+    // set target to the closest rally point or home
+#if AP_RALLY == ENABLED
+    if (!g2.wp_nav.set_desired_location(g2.rally.calc_best_rally_or_home_location(rover.current_loc, ahrs.get_home().alt))) {
+        return false;
+    }
+#else
+    // set destination
+    if (!g2.wp_nav.set_desired_location(ahrs.get_home())) {
+        return false;
+    }
+#endif
+
+    // initialise waypoint speed
+    if (is_positive(g2.rtl_speed)) {
+        g2.wp_nav.set_desired_speed(g2.rtl_speed);
+    } else {
+        g2.wp_nav.set_desired_speed_to_default();
+    }
+
+    sent_notification = false;
+    _loitering = false;
     return true;
 }
 
 void ModeRTL::update()
 {
-    if (!rover.in_auto_reverse) {
-        rover.set_reverse(false);
+    // determine if we should keep navigating
+    if (!g2.wp_nav.reached_destination()) {
+        // update navigation controller
+        navigate_to_waypoint();
+    } else {
+        // send notification
+        if (!sent_notification) {
+            sent_notification = true;
+            gcs().send_text(MAV_SEVERITY_INFO, "Reached destination");
+        }
+
+        // we have reached the destination
+        // boats loiter, rovers stop
+        if (!rover.is_boat()) {
+            stop_vehicle();
+        } else {
+            // if not loitering yet, start loitering
+            if (!_loitering) {
+                _loitering = rover.mode_loiter.enter();
+            }
+            // update stop or loiter
+            if (_loitering) {
+                rover.mode_loiter.update();
+            } else {
+                stop_vehicle();
+            }
+        }
+
+        // update distance to destination
+        _distance_to_destination = rover.current_loc.get_distance(g2.wp_nav.get_destination());
     }
-    calc_lateral_acceleration();
-    calc_nav_steer();
-    calc_throttle(g.speed_cruise);
 }
 
-void ModeRTL::update_navigation()
+// get desired location
+bool ModeRTL::get_desired_location(Location& destination) const
 {
+<<<<<<< HEAD
     // no loitering around the wp with the rover, goes direct to the wp position
     if (rover.verify_RTL()) {
         rover.set_mode(rover.mode_hold, MODE_REASON_MISSION_END);
+=======
+    if (g2.wp_nav.is_destination_valid()) {
+        destination = g2.wp_nav.get_oa_destination();
+        return true;
+>>>>>>> upstream/plane4.0
     }
+    return false;
+}
+
+bool ModeRTL::reached_destination() const
+{
+    return g2.wp_nav.reached_destination();
 }

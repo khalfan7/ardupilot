@@ -14,30 +14,18 @@
  */
 #pragma once
 
-/*
-  advanced failsafe support for rover
- */
+#include <AP_Rally/AP_Rally.h>
+#include <AP_AHRS/AP_AHRS.h>
 
-#if ADVANCED_FAILSAFE == ENABLED
-#include <AP_AdvancedFailsafe/AP_AdvancedFailsafe.h>
-
-/*
-  a rover specific AP_AdvancedFailsafe class
- */
-class AP_AdvancedFailsafe_Rover : public AP_AdvancedFailsafe
+class AP_Rally_Rover : public AP_Rally
 {
 public:
-    using AP_AdvancedFailsafe::AP_AdvancedFailsafe;
+    AP_Rally_Rover() : AP_Rally() { }
 
-    // called to set all outputs to termination state
-    void terminate_vehicle(void) override;
+    /* Do not allow copies */
+    AP_Rally_Rover(const AP_Rally_Rover &other) = delete;
+    AP_Rally_Rover &operator=(const AP_Rally_Rover&) = delete;
 
-protected:
-    // setup failsafe values - this is handled by motors library
-    void setup_IO_failsafe(void) override {}
-
-    // return the AFS mapped control mode
-    enum control_mode afs_mode(void) override;
+private:
+    bool is_valid(const Location &rally_point) const override;
 };
-
-#endif  // ADVANCED_FAILSAFE
