@@ -91,7 +91,7 @@ public:
         k_param_mode_takeoff, // was skip_gyro_cal
         k_param_auto_fbw_steer,
         k_param_waypoint_max_radius,
-        k_param_ground_steer_alt,        
+        k_param_ground_steer_alt,
         k_param_ground_steer_dps,
         k_param_rally_limit_km_old, //unused anymore -- just holding this index
         k_param_hil_err_limit,
@@ -128,11 +128,7 @@ public:
         k_param_override_channel,
         k_param_stall_prevention,
         k_param_optflow,
-<<<<<<< HEAD
-        k_param_cli_enabled,
-=======
         k_param_cli_enabled_old, // unused - CLI removed
->>>>>>> upstream/plane4.0
         k_param_trim_rc_at_start, // unused
         k_param_hil_mode,
         k_param_land_disarm_delay,  // unused - moved to AP_Landing
@@ -469,7 +465,7 @@ public:
     AP_Int8 flap_1_speed;
     AP_Int8 flap_2_percent;
     AP_Int8 flap_2_speed;
-    AP_Int8 takeoff_flap_percent;  
+    AP_Int8 takeoff_flap_percent;
     AP_Int8 stick_mixing;
     AP_Float takeoff_throttle_min_speed;
     AP_Float takeoff_throttle_min_accel;
@@ -521,7 +517,7 @@ public:
 
     // RC input channels
     RC_Channels_Plane rc_channels;
-    
+
     // control over servo output ranges
     SRV_Channels servo_channels;
 
@@ -536,15 +532,7 @@ public:
     // dual motor tailsitter rudder to differential thrust scaling: 0-100%
     AP_Int8 rudd_dt_gain;
 
-<<<<<<< HEAD
-    // mask of channels to do manual pass-thru for
-    AP_Int32 manual_rc_mask;
-    
-#if EFI_ENABLED == ENABLED
-    // EFI Engine Monitor
-    AP_EFI efi;
-#endif  
-=======
+
     // QACRO mode max yaw rate in deg/sec
     AP_Int16 acro_yaw_rate;
 
@@ -577,7 +565,11 @@ public:
     AP_Int8 crow_flap_weight_inner;
     AP_Int8 crow_flap_options;
     AP_Int8 crow_flap_aileron_matching;
->>>>>>> upstream/plane4.0
+
+    #if EFI_ENABLED == ENABLED
+        // EFI Engine Monitor
+        AP_EFI efi;
+    #endif
 };
 
 extern const AP_Param::Info var_info[];
