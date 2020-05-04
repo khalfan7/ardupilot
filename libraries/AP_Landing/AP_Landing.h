@@ -20,16 +20,15 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_SpdHgtControl/AP_SpdHgtControl.h>
 #include <AP_Navigation/AP_Navigation.h>
-#include <GCS_MAVLink/GCS.h>
 #include "AP_Landing_Deepstall.h"
+#include <AP_Common/Location.h>
 
 /// @class  AP_Landing
 /// @brief  Class managing ArduPlane landing methods
-class AP_Landing
-{
-public:
+class AP_Landing {
     friend class AP_Landing_Deepstall;
 
+public:
     FUNCTOR_TYPEDEF(set_target_altitude_proportion_fn_t, void, const Location&, float);
     FUNCTOR_TYPEDEF(constrain_target_altitude_location_fn_t, void, const Location&, const Location&);
     FUNCTOR_TYPEDEF(adjusted_altitude_cm_fn_t, int32_t);
@@ -37,7 +36,6 @@ public:
     FUNCTOR_TYPEDEF(disarm_if_autoland_complete_fn_t, void);
     FUNCTOR_TYPEDEF(update_flight_stage_fn_t, void);
 
-    // constructor
     AP_Landing(AP_Mission &_mission, AP_AHRS &_ahrs, AP_SpdHgtControl *_SpdHgt_Controller, AP_Navigation *_nav_controller, AP_Vehicle::FixedWing &_aparm,
                set_target_altitude_proportion_fn_t _set_target_altitude_proportion_fn,
                constrain_target_altitude_location_fn_t _constrain_target_altitude_location_fn,
@@ -45,6 +43,10 @@ public:
                adjusted_relative_altitude_cm_fn_t _adjusted_relative_altitude_cm_fn,
                disarm_if_autoland_complete_fn_t _disarm_if_autoland_complete_fn,
                update_flight_stage_fn_t _update_flight_stage_fn);
+
+    /* Do not allow copies */
+    AP_Landing(const AP_Landing &other) = delete;
+    AP_Landing &operator=(const AP_Landing&) = delete;
 
 
     // NOTE: make sure to update is_type_valid()
@@ -75,6 +77,9 @@ public:
     bool get_target_altitude_location(Location &location);
     bool send_landing_message(mavlink_channel_t chan);
 
+    // terminate the flight with an immediate landing, returns false if unable to be used for termination
+    bool terminate(void);
+
     // helper functions
     bool restart_landing_sequence(void);
     float wind_alignment(const float heading_deg);
@@ -95,14 +100,13 @@ public:
     bool is_complete(void) const;
     void set_initial_slope(void) { initial_slope = slope; }
     bool is_expecting_impact(void) const;
-    void log(void) const;
-    const DataFlash_Class::PID_Info * get_pid_info(void) const;
+    void Log(void) const;
+    const AP_Logger::PID_Info * get_pid_info(void) const;
 
     // landing altitude offset (meters)
     float alt_offset;
 
 private:
-
     struct {
         // denotes if a go-around has been commanded for landing
         bool commanded_go_around:1;
@@ -114,7 +118,7 @@ private:
     // same as land_slope but sampled once before a rangefinder changes the slope. This should be the original mission planned slope
     float initial_slope;
 
-    // calculated approach slope during auto-landing: ((prev_WP_loc.alt - next_WP_loc.alt)*0.01f - flare_sec * sink_rate) / get_distance(prev_WP_loc, next_WP_loc)
+    // calculated approach slope during auto-landing: ((prev_WP_loc.alt - next_WP_loc.alt)*0.01f - flare_sec * sink_rate) / prev_WP_loc.get_distance(next_WP_loc)
     float slope;
 
     AP_Mission &mission;
