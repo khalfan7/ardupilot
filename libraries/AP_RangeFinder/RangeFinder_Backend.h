@@ -22,7 +22,7 @@ class AP_RangeFinder_Backend
 {
 public:
     // constructor. This incorporates initialisation as well.
-	AP_RangeFinder_Backend(RangeFinder &_ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state, MAV_DISTANCE_SENSOR _sensor_type);
+	AP_RangeFinder_Backend(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params);
 
     // we declare a virtual destructor so that RangeFinder drivers can
     // override with a custom destructor if need be
@@ -31,16 +31,30 @@ public:
     // update the state structure
     virtual void update() = 0;
 
-    // return true if we are beyond the power saving range
-    bool out_of_range(void) const {
-        return ranger._powersave_range > 0 && ranger.estimated_terrain_height > ranger._powersave_range;
-    }
+    virtual void handle_msg(const mavlink_message_t &msg) { return; }
 
-    MAV_DISTANCE_SENSOR get_sensor_type() const {
-        return sensor_type;
-    }
+    enum Rotation orientation() const { return (Rotation)params.orientation.get(); }
+    uint16_t distance_cm() const { return state.distance_cm; }
+    uint16_t voltage_mv() const { return state.voltage_mv; }
+    int16_t max_distance_cm() const { return params.max_distance_cm; }
+    int16_t min_distance_cm() const { return params.min_distance_cm; }
+    int16_t ground_clearance_cm() const { return params.ground_clearance_cm; }
+    MAV_DISTANCE_SENSOR get_mav_distance_sensor_type() const;
+    RangeFinder::RangeFinder_Status status() const;
+    RangeFinder::RangeFinder_Type type() const { return (RangeFinder::RangeFinder_Type)params.type.get(); }
 
-    virtual void handle_msg(mavlink_message_t *msg) { return; }
+    // true if sensor is returning data
+    bool has_data() const;
+
+    // returns count of consecutive good readings
+    uint8_t range_valid_count() const { return state.range_valid_count; }
+
+    // return a 3D vector defining the position offset of the sensor
+    // in metres relative to the body frame origin
+    const Vector3f &get_pos_offset() const { return params.pos_offset; }
+
+    // return system time of last successful read from the sensor
+    uint32_t last_reading_ms() const { return state.last_reading_ms; }
 
 protected:
 
@@ -50,10 +64,14 @@ protected:
     // set status and update valid_count
     void set_status(RangeFinder::RangeFinder_Status status);
 
-    RangeFinder &ranger;
     RangeFinder::RangeFinder_State &state;
-    MAV_DISTANCE_SENSOR sensor_type;
+    AP_RangeFinder_Params &params;
 
     // semaphore for access to shared frontend data
-    AP_HAL::Semaphore *_sem;    
+    HAL_Semaphore _sem;
+
+    //Type Backend initialised with
+    RangeFinder::RangeFinder_Type _backend_type;
+
+    virtual MAV_DISTANCE_SENSOR _get_mav_distance_sensor_type() const = 0;
 };

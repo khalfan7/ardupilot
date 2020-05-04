@@ -8,14 +8,21 @@ class AP_RangeFinder_uLanding : public AP_RangeFinder_Backend
 
 public:
     // constructor
-	AP_RangeFinder_uLanding(RangeFinder &ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state,
-                                   AP_SerialManager &serial_manager);
+	AP_RangeFinder_uLanding(RangeFinder::RangeFinder_State &_state,
+                            AP_RangeFinder_Params &_params,
+                            uint8_t serial_instance);
 
     // static detection function
-    static bool detect(RangeFinder &ranger, uint8_t instance, AP_SerialManager &serial_manager);
+    static bool detect(uint8_t serial_instance);
 
     // update state
-    void update(void);
+    void update(void) override;
+
+protected:
+
+    MAV_DISTANCE_SENSOR _get_mav_distance_sensor_type() const override {
+        return MAV_DISTANCE_SENSOR_RADAR;
+    }
 
 private:
     // detect uLanding Firmware Version
@@ -27,7 +34,10 @@ private:
     AP_HAL::UARTDriver *uart;
     uint8_t  _linebuf[6];
     uint8_t  _linebuf_len;
+<<<<<<< HEAD
     uint32_t _last_reading_ms;
+=======
+>>>>>>> upstream/plane4.0
     bool     _version_known;
     uint8_t  _header;
     uint8_t  _version;

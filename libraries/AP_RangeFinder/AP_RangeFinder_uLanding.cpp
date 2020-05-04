@@ -21,6 +21,13 @@
 #define ULANDING_HDR 254   // Header Byte from uLanding (0xFE)
 #define ULANDING_HDR_V0 72 // Header Byte for beta V0 of uLanding (0x48)
 
+<<<<<<< HEAD
+=======
+#define ULANDING_BAUD           115200
+#define ULANDING_BUFSIZE_RX     128
+#define ULANDING_BUFSIZE_TX     128
+
+>>>>>>> upstream/plane4.0
 extern const AP_HAL::HAL& hal;
 
 /*
@@ -28,14 +35,14 @@ extern const AP_HAL::HAL& hal;
    constructor is not called until detect() returns true, so we
    already know that we should setup the rangefinder
 */
-AP_RangeFinder_uLanding::AP_RangeFinder_uLanding(RangeFinder &_ranger, uint8_t instance,
-                                                             RangeFinder::RangeFinder_State &_state,
-                                                             AP_SerialManager &serial_manager) :
-    AP_RangeFinder_Backend(_ranger, instance, _state, MAV_DISTANCE_SENSOR_RADAR)
+AP_RangeFinder_uLanding::AP_RangeFinder_uLanding(RangeFinder::RangeFinder_State &_state,
+                                                 AP_RangeFinder_Params &_params,
+                                                 uint8_t serial_instance) :
+    AP_RangeFinder_Backend(_state, _params)
 {
-    uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Aerotenna_uLanding, 0);
+    uart = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance);
     if (uart != nullptr) {
-        uart->begin(serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_Aerotenna_uLanding, 0));
+        uart->begin(ULANDING_BAUD, ULANDING_BUFSIZE_RX, ULANDING_BUFSIZE_TX);
     }
 }
 
@@ -44,9 +51,9 @@ AP_RangeFinder_uLanding::AP_RangeFinder_uLanding(RangeFinder &_ranger, uint8_t i
    trying to take a reading on Serial. If we get a result the sensor is
    there.
 */
-bool AP_RangeFinder_uLanding::detect(RangeFinder &_ranger, uint8_t instance, AP_SerialManager &serial_manager)
+bool AP_RangeFinder_uLanding::detect(uint8_t serial_instance)
 {
-    return serial_manager.find_serial(AP_SerialManager::SerialProtocol_Aerotenna_uLanding, 0) != nullptr;
+    return AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance) != nullptr;
 }
 
 /*
@@ -169,7 +176,11 @@ bool AP_RangeFinder_uLanding::get_reading(uint16_t &reading_cm)
                  */
                 continue;
             } else {
+<<<<<<< HEAD
                 if (_version == 0) {
+=======
+                if (_version == 0 && _header != ULANDING_HDR) {
+>>>>>>> upstream/plane4.0
                     // parse data for Firmware Version #0
                     sum += (_linebuf[2]&0x7F)*128 + (_linebuf[1]&0x7F);
                     count++;
@@ -194,7 +205,11 @@ bool AP_RangeFinder_uLanding::get_reading(uint16_t &reading_cm)
 
     reading_cm = sum / count;
 
+<<<<<<< HEAD
     if (_version == 0) {
+=======
+    if (_version == 0 && _header != ULANDING_HDR) {
+>>>>>>> upstream/plane4.0
         reading_cm *= 2.5f;
     }
 
@@ -207,10 +222,16 @@ bool AP_RangeFinder_uLanding::get_reading(uint16_t &reading_cm)
 void AP_RangeFinder_uLanding::update(void)
 {
     if (get_reading(state.distance_cm)) {
+        state.last_reading_ms = AP_HAL::millis();
         // update range_valid state based on distance measured
+<<<<<<< HEAD
         _last_reading_ms = AP_HAL::millis();
         update_status();
     } else if (AP_HAL::millis() - _last_reading_ms > 200) {
+=======
+        update_status();
+    } else if (AP_HAL::millis() - state.last_reading_ms > 200) {
+>>>>>>> upstream/plane4.0
         set_status(RangeFinder::RangeFinder_NoData);
     }
 }

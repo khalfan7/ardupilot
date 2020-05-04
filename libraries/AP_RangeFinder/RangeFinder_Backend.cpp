@@ -24,21 +24,41 @@ extern const AP_HAL::HAL& hal;
   base class constructor. 
   This incorporates initialisation as well.
 */
-AP_RangeFinder_Backend::AP_RangeFinder_Backend(RangeFinder &_ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state, MAV_DISTANCE_SENSOR _sensor_type) :
-        ranger(_ranger),
+AP_RangeFinder_Backend::AP_RangeFinder_Backend(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params) :
         state(_state),
-        sensor_type(_sensor_type)
+		params(_params)
 {
-    _sem = hal.util->new_semaphore();    
+    _backend_type = (RangeFinder::RangeFinder_Type)params.type.get();
+}
+
+MAV_DISTANCE_SENSOR AP_RangeFinder_Backend::get_mav_distance_sensor_type() const {
+    if (params.type == RangeFinder::RangeFinder_TYPE_NONE) {
+        return MAV_DISTANCE_SENSOR_UNKNOWN;
+    }
+    return _get_mav_distance_sensor_type();
+}
+
+RangeFinder::RangeFinder_Status AP_RangeFinder_Backend::status() const {
+    if (params.type == RangeFinder::RangeFinder_TYPE_NONE) {
+        // turned off at runtime?
+        return RangeFinder::RangeFinder_NotConnected;
+    }
+    return state.status;
+}
+
+// true if sensor is returning data
+bool AP_RangeFinder_Backend::has_data() const {
+    return ((state.status != RangeFinder::RangeFinder_NotConnected) &&
+            (state.status != RangeFinder::RangeFinder_NoData));
 }
 
 // update status based on distance measurement
 void AP_RangeFinder_Backend::update_status()
 {
     // check distance
-    if ((int16_t)state.distance_cm > ranger._max_distance_cm[state.instance]) {
+    if ((int16_t)state.distance_cm > params.max_distance_cm) {
         set_status(RangeFinder::RangeFinder_OutOfRangeHigh);
-    } else if ((int16_t)state.distance_cm < ranger._min_distance_cm[state.instance]) {
+    } else if ((int16_t)state.distance_cm < params.min_distance_cm) {
         set_status(RangeFinder::RangeFinder_OutOfRangeLow);
     } else {
         set_status(RangeFinder::RangeFinder_Good);
@@ -46,12 +66,12 @@ void AP_RangeFinder_Backend::update_status()
 }
 
 // set status and update valid count
-void AP_RangeFinder_Backend::set_status(RangeFinder::RangeFinder_Status status)
+void AP_RangeFinder_Backend::set_status(RangeFinder::RangeFinder_Status _status)
 {
-    state.status = status;
+    state.status = _status;
 
     // update valid count
-    if (status == RangeFinder::RangeFinder_Good) {
+    if (_status == RangeFinder::RangeFinder_Good) {
         if (state.range_valid_count < 10) {
             state.range_valid_count++;
         }
@@ -59,3 +79,4 @@ void AP_RangeFinder_Backend::set_status(RangeFinder::RangeFinder_Status status)
         state.range_valid_count = 0;
     }
 }
+

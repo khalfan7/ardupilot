@@ -42,14 +42,21 @@ class AP_RangeFinder_LeddarOne : public AP_RangeFinder_Backend
 
 public:
     // constructor
-    AP_RangeFinder_LeddarOne(RangeFinder &ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state,
-                                   AP_SerialManager &serial_manager);
+    AP_RangeFinder_LeddarOne(RangeFinder::RangeFinder_State &_state,
+                             AP_RangeFinder_Params &_params,
+                             uint8_t serial_instance);
 
     // static detection function
-    static bool detect(RangeFinder &ranger, uint8_t instance, AP_SerialManager &serial_manager);
+    static bool detect(uint8_t serial_instance);
 
     // update state
-    void update(void);
+    void update(void) override;
+
+protected:
+
+    virtual MAV_DISTANCE_SENSOR _get_mav_distance_sensor_type() const override {
+        return MAV_DISTANCE_SENSOR_LASER;
+    }
 
 private:
     // get a reading
@@ -62,7 +69,6 @@ private:
     LeddarOne_Status parse_response(uint8_t &number_detections);
 
     AP_HAL::UARTDriver *uart = nullptr;
-    uint32_t last_reading_ms;
     uint32_t last_sending_request_ms;
     uint32_t last_available_ms;
 

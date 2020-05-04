@@ -14,6 +14,7 @@
  */
 
 #include <AP_HAL/AP_HAL.h>
+#include <AP_Math/crc.h>
 #include "AP_RangeFinder_LeddarOne.h"
 #include <AP_SerialManager/AP_SerialManager.h>
 
@@ -24,14 +25,15 @@ extern const AP_HAL::HAL& hal;
    constructor is not called until detect() returns true, so we
    already know that we should setup the rangefinder
 */
-AP_RangeFinder_LeddarOne::AP_RangeFinder_LeddarOne(RangeFinder &_ranger, uint8_t instance,
-                                                               RangeFinder::RangeFinder_State &_state,
-                                                               AP_SerialManager &serial_manager) :
-    AP_RangeFinder_Backend(_ranger, instance, _state, MAV_DISTANCE_SENSOR_LASER)
+AP_RangeFinder_LeddarOne::AP_RangeFinder_LeddarOne(RangeFinder::RangeFinder_State &_state,
+                                                   AP_RangeFinder_Params &_params,
+                                                   uint8_t serial_instance) :
+    AP_RangeFinder_Backend(_state, _params)
 {
-    uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Lidar, 0);
+    const AP_SerialManager &serial_manager = AP::serialmanager();
+    uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance);
     if (uart != nullptr) {
-        uart->begin(serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_Lidar, 0));
+        uart->begin(serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance));
     }
 }
 
@@ -40,9 +42,9 @@ AP_RangeFinder_LeddarOne::AP_RangeFinder_LeddarOne(RangeFinder &_ranger, uint8_t
    trying to take a reading on Serial. If we get a result the sensor is
    there.
 */
-bool AP_RangeFinder_LeddarOne::detect(RangeFinder &_ranger, uint8_t instance, AP_SerialManager &serial_manager)
+bool AP_RangeFinder_LeddarOne::detect(uint8_t serial_instance)
 {
-    return serial_manager.find_serial(AP_SerialManager::SerialProtocol_Lidar, 0) != nullptr;
+    return AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_Rangefinder, serial_instance) != nullptr;
 }
 
 // read - return last value measured by sensor
@@ -72,14 +74,17 @@ bool AP_RangeFinder_LeddarOne::get_reading(uint16_t &reading_cm)
         read_len = 0;
         modbus_status = LEDDARONE_MODBUS_STATE_PRE_SEND_REQUEST;
         }
-        // no break to fall through to next state LEDDARONE_MODBUS_STATE_PRE_SEND_REQUEST immediately
+
+        // fall through to next state LEDDARONE_MODBUS_STATE_PRE_SEND_REQUEST
+        // immediately
+        FALLTHROUGH;
 
     case LEDDARONE_MODBUS_STATE_PRE_SEND_REQUEST:
         // send a request message for Modbus function 4
         uart->write(send_request_buffer, sizeof(send_request_buffer));
         modbus_status = LEDDARONE_MODBUS_STATE_SENT_REQUEST;
         last_sending_request_ms = AP_HAL::millis();
-        // no break
+        FALLTHROUGH;
 
     case LEDDARONE_MODBUS_STATE_SENT_REQUEST:
         if (uart->available()) {
@@ -125,9 +130,9 @@ void AP_RangeFinder_LeddarOne::update(void)
 {
     if (get_reading(state.distance_cm)) {
         // update range_valid state based on distance measured
-        last_reading_ms = AP_HAL::millis();
+        state.last_reading_ms = AP_HAL::millis();
         update_status();
-    } else if (AP_HAL::millis() - last_reading_ms > 200) {
+    } else if (AP_HAL::millis() - state.last_reading_ms > 200) {
         set_status(RangeFinder::RangeFinder_NoData);
     }
 }
@@ -138,18 +143,7 @@ void AP_RangeFinder_LeddarOne::update(void)
 */
 bool AP_RangeFinder_LeddarOne::CRC16(uint8_t *aBuffer, uint8_t aLength, bool aCheck)
 {
-    uint16_t crc = 0xFFFF;
-
-    for (uint32_t i=0; i<aLength; i++) {
-        crc ^= aBuffer[i];
-        for (uint32_t j=0; j<8; j++) {
-            if (crc & 1) {
-                crc = (crc >> 1) ^ 0xA001;
-            } else {
-                crc >>= 1;
-            }
-        }
-    }
+    uint16_t crc = calc_crc_modbus(aBuffer, aLength);
 
     uint8_t lCRCLo = LOWBYTE(crc);
     uint8_t lCRCHi = HIGHBYTE(crc);
@@ -170,11 +164,10 @@ bool AP_RangeFinder_LeddarOne::CRC16(uint8_t *aBuffer, uint8_t aLength, bool aCh
     -----------------------------------------------
       0: slave address (LEDDARONE_DEFAULT_ADDRESS)
       1: functions code
-      2: ?
-3-4-5-6: timestamp
+      2: byte count
+5-6-3-4: timestamp
     7-8: internal temperature
-      9: ?
-     10: number of detections
+   9-10: number of detections
   11-12: first distance
   13-14: first amplitude
   15-16: second distance
