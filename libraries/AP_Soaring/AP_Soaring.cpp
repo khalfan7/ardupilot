@@ -1,4 +1,5 @@
 #include "AP_Soaring.h"
+#include <AP_Logger/AP_Logger.h>
 #include <GCS_MAVLink/GCS.h>
 #include <stdint.h>
 extern const AP_HAL::HAL& hal;
@@ -131,8 +132,7 @@ const AP_Param::GroupInfo SoaringController::var_info[] = {
 SoaringController::SoaringController(AP_AHRS &ahrs, AP_SpdHgtControl &spdHgt, const AP_Vehicle::FixedWing &parms) :
     _ahrs(ahrs),
     _spdHgt(spdHgt),
-    _aparm(parms),
-    _vario(ahrs,spdHgt,parms),
+    _vario(ahrs,parms),
     _loiter_rad(parms.loiter_radius),
     _throttle_suppressed(true)
 {
@@ -142,7 +142,7 @@ SoaringController::SoaringController(AP_AHRS &ahrs, AP_SpdHgtControl &spdHgt, co
 void SoaringController::get_target(Location &wp)
 {
     wp = _prev_update_location;
-    location_offset(wp, _ekf.X[2], _ekf.X[3]);
+    wp.offset(_ekf.X[2], _ekf.X[3]);
 }
 
 bool SoaringController::suppress_throttle()
@@ -182,10 +182,10 @@ bool SoaringController::check_cruise_criteria()
     float alt = _vario.alt;
 
     if (soar_active && (AP_HAL::micros64() - _thermal_start_time_us) > ((unsigned)min_thermal_s * 1e6) && thermalability < McCready(alt)) {
-        gcs().send_text(MAV_SEVERITY_INFO, "Thermal weak, recommend quitting: W %f R %f th %f alt %f Mc %f\n", (double)_ekf.X[0], (double)_ekf.X[1], (double)thermalability, (double)alt, (double)McCready(alt));
+        gcs().send_text(MAV_SEVERITY_INFO, "Thermal weak, recommend quitting: W %f R %f th %f alt %f Mc %f", (double)_ekf.X[0], (double)_ekf.X[1], (double)thermalability, (double)alt, (double)McCready(alt));
         return true;
     } else if (soar_active && (alt>alt_max || alt<alt_min)) {
-        gcs().send_text(MAV_SEVERITY_ALERT, "Out of allowable altitude range, beginning cruise. Alt = %f\n", (double)alt);
+        gcs().send_text(MAV_SEVERITY_ALERT, "Out of allowable altitude range, beginning cruise. Alt = %f", (double)alt);
         return true;
     }
 
@@ -239,7 +239,7 @@ void SoaringController::init_cruising()
 
 void SoaringController::get_wind_corrected_drift(const Location *current_loc, const Vector3f *wind, float *wind_drift_x, float *wind_drift_y, float *dx, float *dy)
 {
-    Vector2f diff = location_diff(_prev_update_location, *current_loc); // get distances from previous update
+    const Vector2f diff = _prev_update_location.get_distance_NE(*current_loc); // get distances from previous update
     *dx = diff.x;
     *dy = diff.y;
 
@@ -280,7 +280,7 @@ void SoaringController::update_thermalling()
 #endif
 
         // write log - save the data.
-        DataFlash_Class::instance()->Log_Write("SOAR", "TimeUS,nettorate,dx,dy,x0,x1,x2,x3,lat,lng,alt,dx_w,dy_w", "QfffffffLLfff", 
+        AP::logger().Write("SOAR", "TimeUS,nettorate,dx,dy,x0,x1,x2,x3,lat,lng,alt,dx_w,dy_w", "QfffffffLLfff", 
                                                AP_HAL::micros64(),
                                                (double)_vario.reading,
                                                (double)dx,
@@ -332,5 +332,5 @@ bool SoaringController::is_active() const
         return true;
     }
     // active when above 1700
-    return hal.rcin->read(soar_active_ch-1) >= 1700;
+    return RC_Channels::get_radio_in(soar_active_ch-1) >= 1700;
 }
