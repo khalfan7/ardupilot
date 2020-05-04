@@ -22,15 +22,11 @@
 #include "AP_Compass.h"
 #include "AP_Compass_Backend.h"
 
-#ifndef HAL_COMPASS_LIS3MDL_I2C_ADDR
-# define HAL_COMPASS_LIS3MDL_I2C_ADDR 0x1c
+#ifndef HAL_COMPASS_RM3100_I2C_ADDR
+# define HAL_COMPASS_RM3100_I2C_ADDR 0x20
 #endif
 
-#ifndef HAL_COMPASS_LIS3MDL_I2C_ADDR2
-# define HAL_COMPASS_LIS3MDL_I2C_ADDR2 0x1e
-#endif
-
-class AP_Compass_LIS3MDL : public AP_Compass_Backend
+class AP_Compass_RM3100 : public AP_Compass_Backend
 {
 public:
     static AP_Compass_Backend *probe(AP_HAL::OwnPtr<AP_HAL::Device> dev,
@@ -39,10 +35,10 @@ public:
 
     void read() override;
 
-    static constexpr const char *name = "LIS3MDL";
+    static constexpr const char *name = "RM3100";
 
 private:
-    AP_Compass_LIS3MDL(AP_HAL::OwnPtr<AP_HAL::Device> dev,
+    AP_Compass_RM3100(AP_HAL::OwnPtr<AP_HAL::Device> dev,
                        bool force_external,
                        enum Rotation rotation);
 
@@ -57,4 +53,5 @@ private:
     uint8_t compass_instance;
     bool force_external;
     enum Rotation rotation;
+    float _scaler = 1.0;
 };

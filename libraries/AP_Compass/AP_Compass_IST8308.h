@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2016  Emlid Ltd. All rights reserved.
+ * Copyright (C) 2018  Lucas De Marchi. All rights reserved.
  *
  * This file is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or
+ * Free Software Foundation, either version 2 of the License, or
  * (at your option) any later version.
  *
  * This file is distributed in the hope that it will be useful, but
@@ -24,49 +24,33 @@
 #include "AP_Compass.h"
 #include "AP_Compass_Backend.h"
 
-#ifndef HAL_COMPASS_IST8310_I2C_ADDR
-#define HAL_COMPASS_IST8310_I2C_ADDR 0x0E
+#ifndef HAL_COMPASS_IST8308_I2C_ADDR
+#define HAL_COMPASS_IST8308_I2C_ADDR 0x0C
 #endif
 
-class AP_Compass_IST8310 : public AP_Compass_Backend
+class AP_Compass_IST8308 : public AP_Compass_Backend
 {
 public:
-<<<<<<< HEAD
-    static AP_Compass_Backend *probe(Compass &compass,
-                                     AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev,
-                                     bool force_external = false,
-                                     enum Rotation rotation = ROTATION_NONE);
-=======
     static AP_Compass_Backend *probe(AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev,
                                      bool force_external,
                                      enum Rotation rotation);
->>>>>>> upstream/plane4.0
 
     void read() override;
 
-    static constexpr const char *name = "IST8310";
+    static constexpr const char *name = "IST8308";
 
 private:
-<<<<<<< HEAD
-    AP_Compass_IST8310(Compass &compass,
-                       AP_HAL::OwnPtr<AP_HAL::Device> dev,
-=======
-    AP_Compass_IST8310(AP_HAL::OwnPtr<AP_HAL::Device> dev,
->>>>>>> upstream/plane4.0
+    AP_Compass_IST8308(AP_HAL::OwnPtr<AP_HAL::Device> dev,
                        bool force_external,
                        enum Rotation rotation);
 
     void timer();
     bool init();
-    void start_conversion();
 
     AP_HAL::OwnPtr<AP_HAL::Device> _dev;
-    AP_HAL::Device::PeriodicHandle _periodic_handle;
     AP_HAL::Util::perf_counter_t _perf_xfer_err;
-    AP_HAL::Util::perf_counter_t _perf_bad_data;
 
     enum Rotation _rotation;
     uint8_t _instance;
-    bool _ignore_next_sample;
     bool _force_external;
 };
