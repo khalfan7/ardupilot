@@ -27,12 +27,15 @@
 class AP_GPS_ERB : public AP_GPS_Backend
 {
 public:
-    AP_GPS_ERB(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port);
+
+    using AP_GPS_Backend::AP_GPS_Backend;
 
     // Methods
-    bool read();
+    bool read() override;
 
-    AP_GPS::GPS_Status highest_supported_status(void) { return AP_GPS::GPS_OK_FIX_3D_RTK_FIXED; }
+    AP_GPS::GPS_Status highest_supported_status(void) override { return AP_GPS::GPS_OK_FIX_3D_RTK_FIXED; }
+
+    bool supports_mavlink_gps_rtk_message() override { return true; }
 
     static bool _detect(struct ERB_detect_state &state, uint8_t data);
 
@@ -83,6 +86,16 @@ private:
         int32_t heading_2d; ///< Heading of motion 2-D [1e5 deg]
         uint32_t speed_accuracy; ///< Speed accuracy Estimate [cm/s]
     };
+    struct PACKED erb_rtk {
+        uint8_t base_num_sats;       ///< Current number of satellites used for RTK calculation
+        uint16_t age_cs;             ///< Age of the corrections in centiseconds (0 when no corrections, 0xFFFF indicates overflow)
+        int32_t baseline_N_mm;       ///< distance between base and rover along the north axis in millimeters
+        int32_t baseline_E_mm;       ///< distance between base and rover along the east axis in millimeters
+        int32_t baseline_D_mm;       ///< distance between base and rover along the down axis in millimeters
+        uint16_t ar_ratio;           ///< AR ratio multiplied by 10
+        uint16_t base_week_number;   ///< GPS Week Number of last baseline
+        uint32_t base_time_week_ms;  ///< GPS Time of Week of last baseline in milliseconds
+    };
 
     // Receive buffer
     union PACKED {
@@ -92,6 +105,7 @@ private:
         erb_stat stat;
         erb_dops dops;
         erb_vel vel;
+        erb_rtk rtk;
     } _buffer;
 
     enum erb_protocol_bytes {
@@ -102,6 +116,7 @@ private:
         MSG_STAT = 0x03,
         MSG_DOPS = 0x04,
         MSG_VEL = 0x05,
+        MSG_RTK = 0x07,
     };
 
     enum erb_fix_type {
@@ -136,5 +151,5 @@ private:
     bool _parse_gps();
 
     // used to update fix between status and position packets
-    AP_GPS::GPS_Status next_fix;
+    AP_GPS::GPS_Status next_fix = AP_GPS::NO_FIX;
 };
