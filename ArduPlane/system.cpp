@@ -77,7 +77,7 @@ void Plane::init_ardupilot()
     notify_mode(*control_mode);
 
     init_rc_out_main();
-    
+
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
@@ -158,13 +158,13 @@ void Plane::init_ardupilot()
     quadplane.setup();
 
     AP_Param::reload_defaults_file(true);
-    
+
     startup_ground();
 
     // don't initialise aux rc output until after quadplane is setup as
     // that can change initial values of channels
     init_rc_out_aux();
-    
+
     // choose the nav controller
     set_nav_controller();
 
@@ -325,25 +325,12 @@ bool Plane::set_mode(const uint8_t new_mode, const ModeReason reason)
 
 bool Plane::set_mode_by_number(const Mode::Number new_mode_number, const ModeReason reason)
 {
-<<<<<<< HEAD
-    // stop mission when we leave auto
-    if (mode == AUTO) {
-        if (mission.state() == AP_Mission::MISSION_RUNNING) {
-            mission.stop();
 
-            if (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND &&
-                !quadplane.is_vtol_land(mission.get_current_nav_cmd().id))
-            {
-                landing.restart_landing_sequence();
-            }
-        }
-        auto_state.started_flying_in_auto_ms = 0;
-=======
     Mode *new_mode = plane.mode_from_mode_num(new_mode_number);
     if (new_mode == nullptr) {
         gcs().send_text(MAV_SEVERITY_INFO, "Error: invalid mode number: %d", new_mode_number);
         return false;
->>>>>>> upstream/plane4.0
+
     }
     return set_mode(*new_mode, reason);
 }
@@ -370,7 +357,7 @@ void Plane::check_long_failsafe()
                    failsafe.last_heartbeat_ms != 0 &&
                    (tnow - failsafe.last_heartbeat_ms) > g.fs_timeout_long*1000) {
             failsafe_long_on_event(FAILSAFE_GCS, ModeReason::GCS_FAILSAFE);
-        } else if (g.gcs_heartbeat_fs_enabled == GCS_FAILSAFE_HB_RSSI && 
+        } else if (g.gcs_heartbeat_fs_enabled == GCS_FAILSAFE_HB_RSSI &&
                    gcs().chan(0) != nullptr &&
                    gcs().chan(0)->last_radio_status_remrssi_ms != 0 &&
                    (tnow - gcs().chan(0)->last_radio_status_remrssi_ms) > g.fs_timeout_long*1000) {
@@ -383,10 +370,10 @@ void Plane::check_long_failsafe()
             timeout_seconds = g.fs_timeout_short;
         }
         // We do not change state but allow for user to change mode
-        if (failsafe.state == FAILSAFE_GCS && 
+        if (failsafe.state == FAILSAFE_GCS &&
             (tnow - failsafe.last_heartbeat_ms) < timeout_seconds*1000) {
             failsafe_long_off_event(ModeReason::GCS_FAILSAFE);
-        } else if (failsafe.state == FAILSAFE_LONG && 
+        } else if (failsafe.state == FAILSAFE_LONG &&
                    !failsafe.rc_failsafe) {
             failsafe_long_off_event(ModeReason::RADIO_FAILSAFE);
         }

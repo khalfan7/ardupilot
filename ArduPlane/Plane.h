@@ -252,11 +252,6 @@ private:
 
     // Camera
 #if CAMERA == ENABLED
-<<<<<<< HEAD
-    AP_Camera camera{&relay, MASK_LOG_CAMERA, current_loc, gps, ahrs};
-=======
-    AP_Camera camera{MASK_LOG_CAMERA, current_loc};
->>>>>>> upstream/plane4.0
 #endif
 
 #if OPTFLOW == ENABLED
@@ -270,7 +265,7 @@ private:
 #if OSD_ENABLED == ENABLED
     AP_OSD osd;
 #endif
-    
+
     ModeCircle mode_circle;
     ModeStabilize mode_stabilize;
     ModeTraining mode_training;
@@ -314,7 +309,7 @@ private:
 
     // last time we ran roll/pitch stabilization
     uint32_t last_stabilize_ms;
-    
+
     // Failsafe
     struct {
         // Used to track if the value on channel 3 (throtttle) has fallen below the failsafe threshold
@@ -339,10 +334,10 @@ private:
 
         // the time when the last HEARTBEAT message arrived from a GCS
         uint32_t last_heartbeat_ms;
-        
+
         // A timer used to track how long we have been in a "short failsafe" condition due to loss of RC signal
         uint32_t short_timer_ms;
-        
+
         uint32_t last_valid_rc_ms;
 
         //keeps track of the last valid rc as it relates to the AFS system
@@ -438,7 +433,7 @@ private:
         // this is a 0..36000 value, or -1 for disabled
         int32_t hold_course_cd = -1;
 
-        // locked_course and locked_course_cd are used in stabilize mode 
+        // locked_course and locked_course_cd are used in stabilize mode
         // when ground steering is active, and for steering in auto-takeoff
         bool locked_course;
         float locked_course_err;
@@ -456,7 +451,7 @@ private:
         // the highest airspeed we have reached since entering AUTO. Used
         // to control ground takeoff
         float highest_airspeed;
-        
+
         // turn angle for next leg of mission
         float next_turn_angle {90};
 
@@ -465,13 +460,13 @@ private:
 
         // time when we first pass min GPS speed on takeoff
         uint32_t takeoff_speed_time_ms;
-        
+
         // distance to next waypoint
         float wp_distance;
-        
+
         // proportion to next waypoint
         float wp_proportion;
-        
+
         // last time is_flying() returned true in milliseconds
         uint32_t last_flying_ms;
 
@@ -545,7 +540,7 @@ private:
         int8_t last_cmd;
     } gear;
 #endif
-    
+
     struct {
         // on hard landings, only check once after directly a landing so you
         // don't trigger a crash when picking up the aircraft
@@ -574,13 +569,13 @@ private:
     // true if we are in an auto-navigation mode, which controls whether control input is ignored
     // with STICK_MIXING=0
     bool auto_navigation_mode:1;
-    
+
     // this allows certain flight modes to mix RC input with throttle depending on airspeed_nudge_cm
     bool throttle_allows_nudging:1;
 
     // this controls throttle suppression in auto modes
     bool throttle_suppressed;
-	
+
     // reduce throttle to eliminate battery over-current
     int8_t  throttle_watt_limit_max;
     int8_t  throttle_watt_limit_min; // for reverse thrust
@@ -653,7 +648,7 @@ private:
         // previous target bearing, used to update sum_cd
         int32_t old_target_bearing_cd;
 
-        // Total desired rotation in a loiter.  Used for Loiter Turns commands. 
+        // Total desired rotation in a loiter.  Used for Loiter Turns commands.
         int32_t total_cd;
 
         // total angle completed in the loiter so far
@@ -787,13 +782,6 @@ private:
     void send_fence_status(mavlink_channel_t chan);
     void send_servo_out(mavlink_channel_t chan);
     void send_wind(mavlink_channel_t chan);
-<<<<<<< HEAD
-    void send_pid_tuning(mavlink_channel_t chan);
-    void send_rpm(mavlink_channel_t chan);
-    void send_current_waypoint(mavlink_channel_t chan);
-    void send_efi_status(mavlink_channel_t chan);
-=======
->>>>>>> upstream/plane4.0
 
     void send_aoa_ssa(mavlink_channel_t chan);
 
@@ -809,10 +797,6 @@ private:
     void Log_Write_Vehicle_Startup_Messages();
     void Log_Write_AOA_SSA();
     void Log_Write_AETR();
-<<<<<<< HEAD
-    void Log_Read(uint16_t log_num, int16_t start_page, int16_t end_page);
-=======
->>>>>>> upstream/plane4.0
 
     void load_parameters(void);
     void convert_mixers(void);
@@ -905,16 +889,6 @@ private:
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);
     bool reached_loiter_target(void);
-<<<<<<< HEAD
-    bool print_buffer(char *&buf, uint16_t &buf_size, const char *fmt, ...);
-    uint16_t create_mixer(char *buf, uint16_t buf_size, const char *filename);
-    bool mix_one_channel(char *&buf, uint16_t &buf_size, uint8_t out_chan, uint8_t in_chan);
-    bool mix_two_channels(char *&buf, uint16_t &buf_size, uint8_t out_chan, uint8_t in_chan1, uint8_t in_chan2, bool left_channel);
-    bool mix_passthrough(char *&buf, uint16_t &buf_size, uint8_t out_chan, uint8_t in_chan);
-    bool mix_trim_channel(char *&buf, uint16_t &buf_size, uint8_t out_chan);
-    bool setup_failsafe_mixing(void);
-=======
->>>>>>> upstream/plane4.0
     void set_control_channels(void);
     void init_rc_in();
     void init_rc_out_main();
@@ -929,25 +903,11 @@ private:
     void read_rangefinder(void);
     void read_airspeed(void);
     void rpm_update(void);
-<<<<<<< HEAD
     void efi_update(void);
-    void button_update(void);
-    void stats_update();
-    void ice_update(void);
-    void report_radio();
-    void report_ins();
-    void report_compass();
-    void print_radio_values();
-    void print_done();
-    void print_blanks(int16_t num);
-    void print_divider(void);
-    void zero_eeprom(void);
-    void print_enabled(bool b);
-    void print_accel_offsets_and_scaling(void);
-    void print_gyro_offsets(void);
-=======
->>>>>>> upstream/plane4.0
     void init_ardupilot();
+    void get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
+                         uint8_t &task_count,
+                         uint32_t &log_bit) override;
     void startup_ground(void);
     bool set_mode(Mode& new_mode, const ModeReason reason);
     bool set_mode(const uint8_t mode, const ModeReason reason) override;
