@@ -1,9 +1,6 @@
 /*
- *  AP_Notify Library. 
- * based upon a prototype library by David "Buzz" Bussenschutt.
- */
+   PCA9685LED I2C driver
 
-/*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
@@ -19,9 +16,22 @@
  */
 #pragma once
 
+#include <AP_HAL/I2CDevice.h>
 #include "RGBLed.h"
 
-class NavioLED: public RGBLed {
+class PCA9685LED_I2C : public RGBLed
+{
 public:
-    NavioLED();
+    PCA9685LED_I2C(void);
+protected:
+    bool hw_init(void) override;
+    bool hw_set_rgb(uint8_t r, uint8_t g, uint8_t b) override;
+
+private:
+    AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev;
+    void _timer(void);
+    struct {
+        uint8_t r, g, b;
+    } rgb;
+    bool _need_update;
 };

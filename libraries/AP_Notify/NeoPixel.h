@@ -1,6 +1,4 @@
 /*
-   NavioLED I2C driver
-
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
@@ -16,20 +14,34 @@
  */
 #pragma once
 
-#include "NavioLED.h"
-#include <AP_HAL/I2CDevice.h>
+#include "RGBLed.h"
+#include <AP_Common/AP_Common.h>
 
-class NavioLED_I2C : public NavioLED
-{
+class NeoPixel: public RGBLed {
+public:
+    NeoPixel();
+
+    struct {
+        uint8_t b;
+        uint8_t r;
+        uint8_t g;
+    } RGB;
+
+    uint16_t init_ports();
+
 protected:
     bool hw_init(void) override;
     bool hw_set_rgb(uint8_t r, uint8_t g, uint8_t b) override;
 
 private:
-    AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev;
-    void _timer(void);
-    struct {
-        uint8_t r, g, b;
-    } rgb;
-    bool _need_update;
+    uint16_t enable_mask;
+    uint16_t last_mask;
+
+    // perdiodic tick to re-init
+    uint32_t    _last_init_ms;
+
+    // periodic callback
+    void timer();
+    
+    HAL_Semaphore_Recursive _sem;
 };

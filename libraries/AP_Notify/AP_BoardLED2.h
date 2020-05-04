@@ -1,8 +1,4 @@
 /*
-   ToshibaLED driver
-*/
-
-/*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
@@ -16,16 +12,31 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
-#include "ToshibaLED.h"
 
-#define TOSHIBA_LED_BRIGHT  0xFF    // full brightness
-#define TOSHIBA_LED_MEDIUM  0x80    // medium brightness
-#define TOSHIBA_LED_DIM     0x11    // dim
-#define TOSHIBA_LED_OFF     0x00    // off
 
-ToshibaLED::ToshibaLED(): 
-    RGBLed(TOSHIBA_LED_OFF, TOSHIBA_LED_BRIGHT, TOSHIBA_LED_MEDIUM, TOSHIBA_LED_DIM)
+#include <AP_Common/AP_Common.h>
+#include <AP_HAL/AP_HAL.h>
+
+#include "NotifyDevice.h"
+
+#define HIGH 1
+#define LOW 0
+
+class AP_BoardLED2: public NotifyDevice
 {
+public:
+    // initialise the LED driver
+    bool init(void) override;
 
-}
+    // should be called at 50Hz
+    void update(void) override;
+
+private:
+    // counter incremented at 50Hz
+    uint8_t _counter;
+    uint16_t _sat_cnt;
+    uint8_t save_trim_counter;
+    uint8_t arm_counter = 0;
+};

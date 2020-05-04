@@ -1,8 +1,6 @@
 /*
- *  AP_Notify Library.
- * based upon a prototype library by David "Buzz" Bussenschutt.
- */
-
+  NCP5623 Linux driver
+*/
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,9 +17,21 @@
  */
 #pragma once
 
+#include <AP_HAL/I2CDevice.h>
 #include "RGBLed.h"
 
-class ToshibaLED: public RGBLed {
+class NCP5623 : public RGBLed {
 public:
-    ToshibaLED();
+    NCP5623(uint8_t bus);
+protected:
+    bool hw_init(void) override;
+    bool hw_set_rgb(uint8_t r, uint8_t g, uint8_t b) override;
+private:
+    AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev;
+    void _timer(void);
+    bool write(uint8_t reg, uint8_t data);
+    bool write_pwm(uint8_t rgb[3]);
+    uint8_t rgb[3];
+    bool _need_update;
+    uint8_t _bus;
 };
